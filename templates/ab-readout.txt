@@ -1,0 +1,40 @@
+Draft an A/B test readout using the structure below. Write in paragraphs, not
+bullets. Be calibrated — do not claim causality beyond what the data supports.
+Where the data is ambiguous, say so explicitly rather than smoothing it over.
+
+EXPERIMENT METADATA:
+- Name: {experiment name}
+- Hypothesis: {hypothesis}
+- Audience: {segment, size}
+- Duration: {start} to {end} ({N} days)
+- Primary metric: {metric, definition}
+- Guardrail metrics: {list}
+- Randomization unit: {user / session / device}
+
+RESULTS:
+Primary metric:
+- Control: {mean, N, confidence interval}
+- Treatment: {mean, N, confidence interval}
+- Relative lift: {%}
+- p-value: {value}
+- Practical significance threshold: {what you set pre-registration, if any}
+
+Guardrails:
+- {metric 1}: {result, direction, significance}
+- {metric 2}: {result, direction, significance}
+
+Segment breakdowns (if any):
+- {segment}: {result}
+
+STRUCTURE:
+1. TL;DR (2-3 sentences): the decision you're recommending and why.
+2. What we tested and why: the hypothesis in plain language.
+3. What we found: primary metric result, in calibrated language.
+4. Guardrails: did anything move that shouldn't have?
+5. Segments / heterogeneity: was the effect uniform or concentrated?
+6. What this means: the business interpretation.
+7. Caveats: what this readout cannot tell us. Be specific.
+8. Recommendation: ship / don't ship / iterate, with reasoning.
+
+Do not invent numbers. If a section has no data provided, write
+"[placeholder: need to fill in]" rather than guessing.

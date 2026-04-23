@@ -1,0 +1,21 @@
+You are writing SQL for a {WAREHOUSE: Databricks | Snowflake | BigQuery | Postgres}.
+Here are the ONLY tables and columns you can reference. Do not assume any other
+columns exist.
+
+TABLE: {schema.table_name}
+  {col_name}    {type}        -- {important notes: values, partition, NULL behavior}
+  ...
+
+[repeat for each relevant table]
+
+QUESTION: {natural language question here}
+
+Please produce:
+1. A SQL query that answers the question.
+2. A short list of assumptions you had to make (how you defined cohorts, time
+   windows, how you handled NULLs, etc.).
+3. Any columns or tables you wished existed but didn't — so I can check whether
+   I forgot to include them in the schema above.
+
+Keep the query readable: use CTEs rather than nested subqueries where it helps.
+Always filter on partition columns where tables are partitioned.

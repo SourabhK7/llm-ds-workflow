@@ -1,0 +1,41 @@
+# Example .cursorrules for product data science work
+#
+# Drop this file at the root of your analysis repo. Cursor will apply these
+# rules to AI-generated code and prose throughout the repo.
+
+You are helping with product data science work. Follow these conventions:
+
+## SQL style
+- Use CTEs rather than nested subqueries.
+- Always include a comment at the top of each query explaining the question
+  being answered.
+- Always filter on partition columns when querying partitioned tables.
+- Prefer explicit column lists over SELECT *.
+
+## Analysis language
+- Do not claim causality beyond what the method supports. "X caused Y" only
+  applies to properly-run A/B tests with a significant primary effect.
+  For observational or quasi-experimental analysis, use "is associated with",
+  "is consistent with", or "coincided with" instead.
+- Do not use "significant" loosely. If you mean statistically significant,
+  say so and include the p-value or CI. If you mean "notable", use "notable"
+  or a specific number.
+- When summarizing results, always include the magnitude (a number), the
+  direction, and the uncertainty (CI or p-value).
+
+## Null results
+- If an analysis produces a null result, do not spin secondary observations
+  as if they were the primary finding. State the null clearly first, then
+  discuss secondary observations separately with clear caveats.
+
+## Code comments
+- Comment the "why" for non-obvious business logic, not the "what" for
+  standard SQL/Python patterns.
+- If a cohort definition or filter is a judgment call, note the alternative
+  definitions you considered and why you chose this one.
+
+## When producing analysis text for stakeholders
+- Lead with the finding, not the methodology.
+- Name the single most important caveat; let other caveats appear later or
+  in supporting docs.
+- End with a clear recommendation or a clear decision ask.
