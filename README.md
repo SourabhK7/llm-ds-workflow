@@ -118,4 +118,4 @@ This is a personal playbook, so I'm not looking for PRs, but if you try a patter
 
 ## Author
 
-Sourabh Kolhe — Data Scientist, San Jose CA. [LinkedIn](https://www.linkedin.com/in/sourabhkolhe/) · [GitHub](https://github.com/SourabhK7)
+Sourabh Koul — Data Scientist, San Jose CA. [LinkedIn](https://www.linkedin.com/in/sourabhkoul/) · [GitHub](https://github.com/SourabhK7)
