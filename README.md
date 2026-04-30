@@ -22,7 +22,7 @@ Each pattern includes the prompt, a short example of what it produces, and — i
 
 ---
 
-## The 9 patterns
+## The 10 patterns
 
 ### Warehouse SQL
 1. [Schema-anchored query drafting](patterns/01-schema-anchored-sql.md) — how to get Claude to write SQL against a warehouse it's never seen without hallucinating columns
@@ -119,3 +119,5 @@ This is a personal playbook, so I'm not looking for PRs, but if you try a patter
 ## Author
 
 Sourabh Kolhe — Data Scientist, San Jose CA. [LinkedIn](https://www.linkedin.com/in/sourabhkolhe/) · [GitHub](https://github.com/SourabhK7)
+
+10. [Metric interpretation sanity check](patterns/10-metric-sanity-check.md) — before you share a number, a fast check that the numerator/denominator/time window actually means what you think it means
