@@ -39,6 +39,9 @@ Each pattern includes the prompt, a short example of what it produces, and — i
 8. [Slack-ready explanation](patterns/08-slack-ready.md) — same finding, different register; optimized for "can be understood without opening a doc"
 9. [Pre-mortem for analyses](patterns/09-pre-mortem.md) — before you run the query, have Claude surface the ways this analysis could be wrong or misleading
 
+### Metric hygiene
+10. [Metric interpretation sanity check](patterns/10-metric-sanity-check.md) — before you share a number, a fast check that the numerator/denominator/time window actually means what you think it means
+
 ---
 
 ## How I use this in practice
@@ -85,7 +88,7 @@ Caveats: these are my own timings on my own work, not a controlled study. The "b
 ```
 llm-ds-workflow/
 ├── README.md                  # this file
-├── patterns/                  # the 9 pattern docs
+├── patterns/                  # the 10 pattern docs
 ├── examples/                  # full before/after examples with real(istic) inputs
 │   ├── ab-readout-example.md
 │   ├── sql-drafting-example.md
@@ -118,6 +121,4 @@ This is a personal playbook, so I'm not looking for PRs, but if you try a patter
 
 ## Author
 
-Sourabh Kolhe — Data Scientist, San Jose CA. [LinkedIn](https://www.linkedin.com/in/sourabhkolhe/) · [GitHub](https://github.com/SourabhK7)
-
-10. [Metric interpretation sanity check](patterns/10-metric-sanity-check.md) — before you share a number, a fast check that the numerator/denominator/time window actually means what you think it means
+Sourabh Koul — Data Scientist, San Jose CA. [LinkedIn](https://www.linkedin.com/in/sourabhkoul/) · [GitHub](https://github.com/SourabhK7)
