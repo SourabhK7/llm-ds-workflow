@@ -2,11 +2,11 @@
 
 [![test](https://github.com/SourabhK7/llm-ds-workflow/actions/workflows/test.yml/badge.svg)](https://github.com/SourabhK7/llm-ds-workflow/actions/workflows/test.yml)
 
-A working playbook of prompt patterns for product data science: warehouse SQL drafting, A/B test readouts, and stakeholder summaries. Built around Claude (chat + API) and Cursor.
+Eleven prompt patterns for product data science — warehouse SQL drafting, A/B test readouts, stakeholder summaries, anomaly investigation — plus a Python library that renders them programmatically and worked examples showing what each produces. Built around Claude (chat + API) and Cursor.
 
-These are patterns I actually use day-to-day. They cut my analysis turnaround by roughly 50% — informally measured by tracking time-to-first-draft across a handful of recurring work types (ad-hoc SQL, experiment readouts, exec summaries) over several weeks.
+These are the patterns I run in production, day-to-day. Time-to-first-draft on the recurring work types (ad-hoc SQL, experiment readouts, exec summaries) is down about 50%, informally tracked over several weeks. That's not the interesting number — the interesting number is how much cognitive load moves off the "write it from scratch" step and onto "edit a solid draft," which is a different kind of work and a much lower activation energy at 4pm on a Friday.
 
-The goal isn't prompts that sound clever. It's prompts that reliably produce first drafts good enough to edit rather than rewrite.
+Nothing here is "prompts that sound clever." Every pattern is a scaffold that reliably produces first drafts good enough to edit rather than rewrite, on real messy warehouse data, for real PMs and design leads who won't tolerate jargon.
 
 ---
 
