@@ -4,9 +4,9 @@
 
 A working playbook of prompt patterns for product data science: warehouse SQL drafting, A/B test readouts, and stakeholder summaries. Built around Claude (chat + API) and Cursor.
 
-These are the patterns I actually use day-to-day. They cut my analysis turnaround by roughly 50% — measured informally by tracking time-to-first-draft across a handful of recurring work types (ad-hoc SQL, experiment readouts, exec summaries) over several weeks.
+These are patterns I actually use day-to-day. They cut my analysis turnaround by roughly 50% — informally measured by tracking time-to-first-draft across a handful of recurring work types (ad-hoc SQL, experiment readouts, exec summaries) over several weeks.
 
-The goal of this repo is not "prompts that sound clever." It's prompts that reliably produce first drafts good enough to edit, not rewrite.
+The goal isn't prompts that sound clever. It's prompts that reliably produce first drafts good enough to edit rather than rewrite.
 
 ---
 
