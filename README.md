@@ -1,5 +1,7 @@
 # LLM-Accelerated DS Workflow
 
+[![test](https://github.com/SourabhK7/llm-ds-workflow/actions/workflows/test.yml/badge.svg)](https://github.com/SourabhK7/llm-ds-workflow/actions/workflows/test.yml)
+
 A working playbook of prompt patterns for product data science: warehouse SQL drafting, A/B test readouts, and stakeholder summaries. Built around Claude (chat + API) and Cursor.
 
 These are the patterns I actually use day-to-day. They cut my analysis turnaround by roughly 50% — measured informally by tracking time-to-first-draft across a handful of recurring work types (ad-hoc SQL, experiment readouts, exec summaries) over several weeks.
@@ -91,16 +93,60 @@ Caveats: these are my own timings on my own work, not a controlled study. The "b
 llm-ds-workflow/
 ├── README.md                  # this file
 ├── patterns/                  # the 10 pattern docs
+├── llm_ds_workflow/           # Python library: load + render templates
+│   ├── __init__.py
+│   ├── core.py                # discovery + render logic
+│   └── __main__.py            # CLI: list / show / render
+├── tests/                     # pytest coverage of the library
 ├── examples/                  # full before/after examples with real(istic) inputs
 │   ├── ab-readout-example.md
 │   ├── sql-drafting-example.md
 │   ├── exec-summary-example.md
-│   └── anomaly-decomposition-example.md
+│   ├── anomaly-decomposition-example.md
+│   ├── run_ab_readout.py                    # runnable end-to-end demo
+│   └── ab-readout-rendered-example.md       # checked-in demo output
 └── templates/                 # copy-paste prompt templates
     ├── sql-draft.txt
     ├── ab-readout.txt
     └── exec-summary.txt
 ```
+
+---
+
+## Using from Python (optional)
+
+The patterns and templates are also exposed as a small Python library so you can render a filled-in prompt programmatically instead of copy-pasting.
+
+```bash
+pip install -e .
+```
+
+```python
+from llm_ds_workflow import render, list_templates
+
+for t in list_templates():
+    print(t.name, t.placeholders)
+
+filled = render("ab-readout", {
+    "experiment name": "onboarding_v2",
+    "hypothesis": "adding a save-progress modal improves activation",
+    # ...
+})
+print(filled.text)         # the ready-to-send prompt
+print(filled.missing)      # placeholders you didn't fill
+```
+
+CLI equivalent:
+
+```bash
+python -m llm_ds_workflow list
+python -m llm_ds_workflow list --templates
+python -m llm_ds_workflow render ab-readout --var-file experiment.yaml --output prompt.txt
+```
+
+A complete end-to-end demo (fabricated experiment result → filled template → optional Claude call) is at [`examples/run_ab_readout.py`](examples/run_ab_readout.py). A checked-in rendered example at [`examples/ab-readout-rendered-example.md`](examples/ab-readout-rendered-example.md) shows what the filled prompt looks like without needing to run anything.
+
+This library exists so the templates can plug into notebooks and analysis scripts, not just chat windows. The prose patterns in `patterns/` are still the primary artifact — the library is a convenience layer over them.
 
 ---
 
