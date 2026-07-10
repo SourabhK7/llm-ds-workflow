@@ -22,7 +22,7 @@ Each pattern includes the prompt, a short example of what it produces, and — i
 
 ---
 
-## The 10 patterns
+## The 11 patterns
 
 ### Warehouse SQL
 1. [Schema-anchored query drafting](patterns/01-schema-anchored-sql.md) — how to get Claude to write SQL against a warehouse it's never seen without hallucinating columns
@@ -39,8 +39,9 @@ Each pattern includes the prompt, a short example of what it produces, and — i
 8. [Slack-ready explanation](patterns/08-slack-ready.md) — same finding, different register; optimized for "can be understood without opening a doc"
 9. [Pre-mortem for analyses](patterns/09-pre-mortem.md) — before you run the query, have Claude surface the ways this analysis could be wrong or misleading
 
-### Metric hygiene
+### Metric hygiene & diagnostics
 10. [Metric interpretation sanity check](patterns/10-metric-sanity-check.md) — before you share a number, a fast check that the numerator/denominator/time window actually means what you think it means
+11. [Anomaly decomposition](patterns/11-anomaly-decomposition.md) — when a metric moves and a PM asks "why?", a ranked decomposition tree that forces you to rule out instrumentation and composition shifts *before* talking about behavior
 
 ---
 
@@ -78,6 +79,7 @@ Tracked informally across ~6 weeks on Adobe Acrobat B2B analytics work:
 | Experiment readout | ~90 min | ~45 min | Mostly structural time savings |
 | Exec summary | ~30 min | ~10 min | Format consistency is the main win |
 | Pre-mortem / analysis planning | N/A (didn't do it) | ~10 min | New habit the LLM enabled |
+| Anomaly investigation ("why is X down?") | ~60 min | ~25 min | Ordering discipline is where the savings come from |
 
 Caveats: these are my own timings on my own work, not a controlled study. The "before" numbers are from memory and project retrospectives, not a log. Take them as directional.
 
@@ -92,7 +94,8 @@ llm-ds-workflow/
 ├── examples/                  # full before/after examples with real(istic) inputs
 │   ├── ab-readout-example.md
 │   ├── sql-drafting-example.md
-│   └── exec-summary-example.md
+│   ├── exec-summary-example.md
+│   └── anomaly-decomposition-example.md
 └── templates/                 # copy-paste prompt templates
     ├── sql-draft.txt
     ├── ab-readout.txt
