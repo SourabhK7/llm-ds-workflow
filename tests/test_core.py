@@ -5,10 +5,10 @@ from __future__ import annotations
 from llm_ds_workflow import list_patterns, list_templates, load_template, render
 
 
-def test_list_patterns_finds_all_11():
+def test_list_patterns_finds_all_15():
     patterns = list_patterns()
     names = [p.name for p in patterns]
-    assert len(names) == 11, f"expected 11 patterns, got {len(names)}: {names}"
+    assert len(names) == 15, f"expected 15 patterns, got {len(names)}: {names}"
     assert all(n.split("-")[0].isdigit() for n in names), names
 
 
