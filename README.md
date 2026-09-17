@@ -92,7 +92,7 @@ Caveats: these are my own timings on my own work, not a controlled study. The "b
 ```
 llm-ds-workflow/
 ├── README.md                  # this file
-├── patterns/                  # the 10 pattern docs
+├── patterns/                  # the 11 pattern docs
 ├── llm_ds_workflow/           # Python library: load + render templates
 │   ├── __init__.py
 │   ├── core.py                # discovery + render logic
