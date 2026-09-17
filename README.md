@@ -2,7 +2,7 @@
 
 [![test](https://github.com/SourabhK7/llm-ds-workflow/actions/workflows/test.yml/badge.svg)](https://github.com/SourabhK7/llm-ds-workflow/actions/workflows/test.yml)
 
-Eleven prompt patterns for product data science — warehouse SQL drafting, A/B test readouts, stakeholder summaries, anomaly investigation — plus a Python library that renders them programmatically and worked examples showing what each produces. Built around Claude (chat + API) and Cursor.
+Fifteen prompt patterns for product data science — warehouse SQL drafting, A/B test readouts, stakeholder summaries, anomaly investigation, LLM-as-judge eval design, retention narratives, segmentation storytelling, and exec Q&A prep — plus a Python library that renders them programmatically and worked examples showing what each produces. Built around Claude (chat + API) and Cursor.
 
 These are the patterns I run in production, day-to-day. Time-to-first-draft on the recurring work types (ad-hoc SQL, experiment readouts, exec summaries) is down about 50%, informally tracked over several weeks. That's not the interesting number — the interesting number is how much cognitive load moves off the "write it from scratch" step and onto "edit a solid draft," which is a different kind of work and a much lower activation energy at 4pm on a Friday.
 
@@ -24,7 +24,7 @@ Each pattern includes the prompt, a short example of what it produces, and — i
 
 ---
 
-## The 11 patterns
+## The 15 patterns
 
 ### Warehouse SQL
 1. [Schema-anchored query drafting](patterns/01-schema-anchored-sql.md) — how to get Claude to write SQL against a warehouse it's never seen without hallucinating columns
@@ -44,6 +44,12 @@ Each pattern includes the prompt, a short example of what it produces, and — i
 ### Metric hygiene & diagnostics
 10. [Metric interpretation sanity check](patterns/10-metric-sanity-check.md) — before you share a number, a fast check that the numerator/denominator/time window actually means what you think it means
 11. [Anomaly decomposition](patterns/11-anomaly-decomposition.md) — when a metric moves and a PM asks "why?", a ranked decomposition tree that forces you to rule out instrumentation and composition shifts *before* talking about behavior
+
+### Eval & analysis design
+12. [LLM-as-judge rubric authoring](patterns/12-llm-as-judge-rubric.md) — co-write eval rubrics with Claude that actually discriminate, with behavioral anchors at every score point instead of adjectives
+13. [Retention curve narrative](patterns/13-retention-curve-narrative.md) — describe D1/D7/D30 curves in a way a PM can act on, without the survivorship-bias landmines
+14. [Segmentation storytelling](patterns/14-segmentation-storytelling.md) — turn k-means / clustering output into named personas with actionable pen portraits, not centroid tables
+15. [Exec Q&A prep](patterns/15-exec-qa-prep.md) — anticipate the 6-8 hardest questions an exec will ask a readout, and prep calibrated answers to each
 
 ---
 
@@ -92,7 +98,7 @@ Caveats: these are my own timings on my own work, not a controlled study. The "b
 ```
 llm-ds-workflow/
 ├── README.md                  # this file
-├── patterns/                  # the 11 pattern docs
+├── patterns/                  # the 15 pattern docs
 ├── llm_ds_workflow/           # Python library: load + render templates
 │   ├── __init__.py
 │   ├── core.py                # discovery + render logic
