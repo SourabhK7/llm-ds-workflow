@@ -1,14 +1,12 @@
-# Pattern 05 — Calibrated language pass
+# Pattern 05: Calibrated language pass
 
-**Problem this solves:** LLM-drafted analysis text consistently over-claims. It reaches for "caused", "drove", "led to" when the data only supports "consistent with" or "associated with". This matters because calibration errors in readouts compound into bad product decisions.
+Analysis text drafted by an LLM almost always claims too much. It says "caused," "drove" or "led to" when the data only supports "consistent with" or "associated with." That matters, because overstated readouts turn into bad product decisions.
 
-It is also the single pattern with the highest impact-per-effort ratio. Running this 30-second pass on any analysis text removes a subtle failure mode that otherwise propagates into presentations and decision docs.
+It's also the best return on effort of anything in this repo. Thirty seconds on any analysis text removes a quiet problem that would otherwise carry into decks and decision docs.
 
-**The pattern:** Take drafted analysis text and ask Claude to rewrite it with calibrated causal language, specifically addressing the claims that go beyond what a correlational or experimental analysis can support.
+Take the drafted text and have Claude rewrite the causal language to match what the method can actually support.
 
----
-
-## The prompt template
+## The prompt
 
 ```
 Below is analysis text I've drafted. Please rewrite it so that the causal
@@ -38,44 +36,40 @@ Rules for the rewrite:
 After the rewrite, briefly list the specific changes you made and why.
 ```
 
-## Why rule #4 matters so much
+## Rule 4 is the important one
 
-The most common failure of a naive "make it more calibrated" prompt is that it produces text where every finding is hedged into meaninglessness. A readout that says "we observed a potential directional trend consistent with a possible increase" is *worse* than the over-claim, because it's now impossible to make a decision from.
-
-Explicitly telling Claude not to over-hedge is what keeps this useful.
+A plain "make this more careful" prompt tends to hedge every finding until it means nothing. "We observed a potential directional trend consistent with a possible increase" is worse than the overclaim, because nobody can make a decision from it. Telling Claude not to over-hedge is what keeps the pass useful.
 
 ## Example
 
-**Before** (LLM-drafted readout text):
+Before (LLM-drafted readout text):
 
 > The new onboarding flow caused a 3.2% increase in Day 1 activation, showing that simplifying the signup steps drives meaningful engagement. Users in the treatment group were significantly more likely to complete the tutorial, and the data shows this pattern holds across segments.
 
-**After** (calibrated pass):
+After the pass:
 
-> The new onboarding flow was associated with a 3.2% relative increase in Day 1 activation (p = 0.02, 95% CI 0.7% to 5.7%). This is consistent with simplified signup steps improving early engagement, though the mechanism is indirect. Users in the treatment group were more likely to complete the tutorial (45% vs 39%, p < 0.01), and the direction of effect was similar across the three segments we examined — though the confidence intervals overlap, so we cannot conclude the effect is uniform.
+> The new onboarding flow was associated with a 3.2% relative increase in Day 1 activation (p = 0.02, 95% CI 0.7% to 5.7%). This is consistent with simplified signup steps improving early engagement, though the mechanism is indirect. Users in the treatment group were more likely to complete the tutorial (45% vs 39%, p < 0.01), and the direction of effect was similar across the three segments we examined, though the confidence intervals overlap, so we cannot conclude the effect is uniform.
 
-Changes made:
-- "Caused" → "was associated with" (A/B test gives us causal identification, but "caused a 3.2% increase" conflates point estimate with uncertainty; "associated with a 3.2% relative increase" + confidence interval is more honest)
-- Added the CI and p-value for the primary result, which the draft implied but didn't state
-- "Significantly more likely" kept, but added the numbers and p-value
-- "The data shows this pattern holds across segments" → "the direction was similar... though the confidence intervals overlap" (the data does NOT show the pattern holds; it's consistent with the pattern holding)
-- Preserved the structure and order of the original; no reorganization
+What changed:
+- "Caused" became "was associated with." An A/B test does support a causal reading, but "caused a 3.2% increase" treats the point estimate as certain. Giving the relative increase with its confidence interval is more accurate.
+- Added the CI and p-value for the main result, which the draft implied but didn't state.
+- Kept "more likely" for the tutorial, with the numbers and p-value added.
+- "The data shows this pattern holds across segments" became "the direction was similar, though the confidence intervals overlap." The data is consistent with the pattern holding. It doesn't show it.
+- Kept the original structure and order.
 
----
+## Why this matters in product DS
 
-## Why this works for product DS specifically
+Product orgs reward analysis that sounds confident. A PM would rather hear "X caused Y" than "X is associated with Y," so there's a constant pull toward overclaiming that you have to push back on deliberately.
 
-Product orgs reward confident-sounding analysis. PMs prefer "X caused Y" over "X is associated with Y". This creates a gravitational pull toward over-claim that individual DSs have to resist consciously.
+Having the model do the pass also takes the awkwardness out of it. You're not being difficult in the doc review. The draft just comes back calibrated.
 
-Having a machine do the calibration pass removes the social awkwardness of hedging. You're not "being difficult" in a draft review — the LLM already did it, and you're just accepting the output.
+## Where it goes wrong
 
-## Failure mode
+Sometimes it weakens language that should stay strong. It'll turn "we ran an A/B test and found a 10% lift" into "we observed an effect consistent with a 10% change," which is too cautious. A well-run, well-powered A/B test with a significant primary effect can make a causal claim.
 
-Claude sometimes downgrades language that should stay strong. Example: it'll change "we ran an A/B test and found a 10% lift" to "we observed an effect consistent with a 10% change" — that's over-calibrated. A properly-run, properly-powered A/B test with a significant primary effect *can* make causal claims.
+That's why the prompt asks for a list of changes. Skim it and undo any over-hedging.
 
-**Mitigation:** the "briefly list the changes" requirement in the prompt. Skim the list and revert any over-hedging.
+## When not to bother
 
-## When to skip
-
-- Internal scratch notes that no one else will read.
-- Text where you've already been rigorous about calibration (rare, but worth noting).
+- Scratch notes nobody else will read.
+- Text you've already been careful with (rare, but it happens).

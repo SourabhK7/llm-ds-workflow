@@ -5,7 +5,7 @@ ANALYSIS:
 {paste the full analysis}
 
 AUDIENCE:
-{who is reading this — VP? Director? CEO? — and what decision are they making
+{who is reading this (VP? Director? CEO?) and what decision are they making
 from it}
 
 RULES:
@@ -15,7 +15,7 @@ rough magnitude.
 
 Bullet 2: The single most important caveat. This is the caveat that, if the
 exec doesn't hear it, they will make a worse decision. Not every caveat in the
-full doc — the single one that matters most for the decision at hand.
+full doc, the single one that matters most for the decision at hand.
 
 Bullet 3: What we recommend or what we need to decide.
 
@@ -23,5 +23,5 @@ After the TL;DR, list the caveats you chose NOT to include, and why. I want to
 see what you filtered out so I can check your judgment.
 
 Keep bullets to one sentence each. Do not use sub-bullets. Do not hedge
-individual words ("potentially", "may suggest") — if something is uncertain,
+individual words ("potentially", "may suggest"). If something is uncertain,
 the single-caveat bullet is where it goes, not sprinkled through the others.

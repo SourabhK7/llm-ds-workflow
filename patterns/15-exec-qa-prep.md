@@ -1,154 +1,127 @@
-# Pattern 15 — Exec Q&A prep
+# Pattern 15: Exec Q&A prep
 
-**Problem this solves:** You're about to share an analysis with an exec (a VP, a director, sometimes a founder). You've done the work. The readout is tight. What you don't have is a good sense of the 5-8 hardest questions that will land in the meeting, and you don't have prepared answers to them. Most DS wing this and it shows: the answer is either "I'd have to look into that" (which erodes trust) or a confident wrong answer (which erodes trust worse).
+You're about to present an analysis to a VP, a director, or a founder. The readout is solid. What you don't have is a list of the six to eight hardest questions they'll ask, and answers ready for them. If you wing it, the answer tends to be either "I'd have to look into that," which costs you some trust, or a confident answer that turns out wrong, which costs you more.
 
-**The pattern:** Give Claude your readout (or the key findings) plus a one-line description of the exec's job function, and ask it to produce a ranked list of the questions this specific reader is likely to ask — plus a calibrated draft answer for each. Then edit the answers hard, because Claude's default answers are polished but often not honest enough.
+Give Claude the readout and a one-line description of what the exec does, and ask for the questions they're most likely to ask, each with a draft answer. Then edit the answers hard, because the drafts tend to be polished but not quite honest enough.
 
-The move that makes this work: **ask Claude to categorize each anticipated question by what it's really about** (methodology, business implication, scope, feasibility, follow-up work, or challenge to a claim). The question "how confident are you in this?" from a Head of Product means something different than the same words from a Head of Data. Categorization is what forces prep that isn't generic.
+The part that makes this work is having Claude tag what each question is really about. "How confident are you?" from a head of product means something different than the same words from a head of data.
 
----
+## Why bother
 
-## Why this exists
+The analysis is usually forty minutes of prepared thinking, followed by fifteen minutes of unprepared thinking under time pressure. The second part is often what people remember.
 
-The failure mode in a lot of DS-to-exec meetings isn't the analysis. It's that the analysis is 40 minutes of prepared thinking followed by 15 minutes of unprepared thinking under time pressure, and the second half is where the exec's memory of you is formed.
+Two ways that goes badly:
 
-Two common shapes of this failure:
+The methodology question. "Did you control for X?" "Yes, in the segmentation." "What happens if you don't?" Silence. Twenty hours of work, and the takeaway is the ninety seconds where you didn't know.
 
-- **The methodology deep-dive.** Exec asks "did you control for X?" You say "we did, in the segmentation step". Exec asks "what happens if we don't control for X?". You don't know. You've spent 20 hours on the analysis and now 90 seconds of not-knowing is the takeaway.
-- **The business implication punt.** Exec asks "so, ballpark, how much revenue is this worth?" You say "it depends on how many users we'd target and the assumed conversion lift". This is technically correct and functionally useless. The prepared version has three scenarios ready with the assumptions listed.
+The business question you punt. "Roughly how much revenue is this worth?" "It depends on how many users we target and what lift we assume." True, and no help to anyone. The prepared version has three scenarios with their assumptions written down.
 
-You don't need to have perfect answers to hard questions. You need to have *prepared* answers to hard questions. The gap between "I hadn't thought about that" and "here's the tradeoff, here's my read, here's what I'd want to test" is not intelligence — it's whether you did the prep work.
+You don't need perfect answers. You need prepared ones. The difference between "I hadn't thought about that" and "here's the tradeoff, here's my read, here's what I'd test" mostly comes down to prep.
 
----
-
-## The prompt template
+## The prompt
 
 ```
-I'm about to present the following analysis to {exec title} — {one
-line on what this person does and what they care about}.
+I'm about to present the following analysis to {exec title}, {one line
+on what this person does and what they care about}.
 
-Meeting context: {e.g., "20-minute slot in a monthly business
-review, decision I want out of it is X"}.
+Meeting context: {e.g., "20-minute slot in a monthly business review;
+the decision I want out of it is X"}.
 
-Here's the readout / findings:
-{paste the full readout or a tight summary — headline, key
-findings, recommendation}
+The readout:
+{paste the full readout or a tight summary: headline, key findings,
+recommendation}
 
-Produce 6-8 questions this specific exec is likely to ask,
-ranked from most to least likely. For each:
+Give me the 6-8 questions this exec is most likely to ask, most likely
+first. For each:
 
-1. **The question**, in the exec's likely phrasing (not the
-   sanitized academic version).
+1. The question, the way this exec would actually phrase it.
 
-2. **What the question is really about** — pick one:
+2. What it's really about, one of:
    - METHODOLOGY (did you compute this right?)
-   - BUSINESS IMPLICATION (what does this mean for revenue /
-     users / roadmap?)
+   - BUSINESS IMPLICATION (what does this mean for revenue / users /
+     roadmap?)
    - SCOPE (is this the whole story or a slice?)
    - FEASIBILITY (can we act on this?)
-   - FOLLOW-UP (what else should we investigate?)
-   - CHALLENGE (I don't buy this — convince me)
+   - FOLLOW-UP (what else should we look at?)
+   - CHALLENGE (I don't buy this, convince me)
 
-3. **A calibrated draft answer** in 2-4 sentences. Rules for the
-   draft:
-   - If the honest answer is "I don't know", say so and then say
-     what you'd need to check. Do not fabricate.
-   - If the answer requires a number that isn't in the readout,
-     flag it explicitly — that's a gap to close before the meeting.
-   - Do not hedge every sentence. Hedging on the wrong things
-     signals lack of confidence overall. Hedge specifically where
-     the data is genuinely weak.
-   - Do not oversell. If a finding has real limitations, name them
-     in the answer, not as a footnote.
+3. A draft answer in 2-4 sentences:
+   - If the honest answer is "I don't know," say so and what you'd
+     need to check. Don't make things up.
+   - If the answer needs a number that isn't in the readout, flag it.
+     That's a gap to fill before the meeting.
+   - Don't hedge every sentence. Hedge where the data is actually weak.
+   - Don't oversell. Put real limitations in the answer, not in a
+     footnote.
 
-4. **The one-line follow-up you'd offer** if the exec presses (a
-   commitment: "I'll come back with X by Y"). Only include this
-   for questions where a follow-up is realistic.
+4. If the exec pushes, a one-line follow-up commitment ("I'll come back
+   with X by Y"), only where that's realistic.
 
-At the end, produce a "**wildcard**" — one question that isn't in
-the top 8 but that this specific exec is known to ask ("what does
-finance think?" from a growth-oriented VP; "how does this compare
-to what Amazon does?" from a competitive-obsessed founder). Even if
-you're wrong about this one, thinking through it forces a broader
-view.
+Then one "wildcard": a question outside the top 8 that this particular
+exec might ask, given what they care about.
 
-Then produce a "**questions I hope they DON'T ask, and why**"
-section. Two or three, honestly listed. These are the ones you
-should actually prep hardest for — the fact that you hope they
-skip them is a signal.
+Then "questions I hope they don't ask, and why": two or three, honestly.
+Those are the ones to prepare hardest for.
 ```
 
----
+## Why the tags matter
 
-## Why the categorization step matters
+Without the tag, Claude writes answers that sound fine and miss the actual concern. Each kind of question wants a different kind of answer:
 
-Without the "what the question is really about" tagging, Claude will produce plausible-sounding answers that miss the actual concern. A METHODOLOGY question wants precision; a BUSINESS IMPLICATION question wants numbers and confidence; a CHALLENGE question wants you to hold your ground with evidence, not fold.
+- Methodology: name the specific assumption or method, the alternative, and why you picked yours. "We used a 7-day attribution window. 1-day and 30-day are the alternatives. We use 7 because it matches how marketing reports."
+- Business implication: give a range, name the main sensitivity, and don't dodge. "Roughly $200K to $400K in ARR. The big unknown is whether the lift holds outside the test population. The range covers it holding at half strength through full strength."
+- Scope: say what's in and what's out, and offer to extend it. "US web only. Mobile is next. I left out APAC because its funnel is different enough that combining them would muddy the result."
+- Feasibility: be direct about cost and dependencies. "Yes, if we get half a week of data engineering time. Without that, no."
+- Follow-up: commit to something small and specific. "I'll run the same cut for mobile by Friday and send a one-pager."
+- Challenge: don't fold. Restate the evidence, name the other explanation, and say why you find yours more likely. "I get the concern. The reason I don't think it's {alternative} is {specific evidence}. The weak spot in my case is {honest limit}."
 
-The category shapes the answer:
+Untagged, the answers drift toward a mix of methodology and vague follow-up, which comes across as noncommittal in an exec meeting.
 
-- **Methodology → be specific about the assumption or method, name the alternative, say why you picked yours.** "We used a 7-day attribution window. Alternatives are 1-day or 30-day. 7-day is standard for us because it matches marketing's reporting."
-- **Business implication → give a range, name the key sensitivity, don't punt.** "Ballpark $200K-$400K in ARR. The main sensitivity is whether the conversion lift holds beyond the test population; the range covers a 50% attenuation to no attenuation."
-- **Scope → say what's in and what's out, and offer to expand.** "This is US-only, web-only. Mobile is next. I did not include APAC because their funnel shape is different enough that pooling would obscure the story."
-- **Feasibility → be blunt about engineering cost, dependencies, and the go/no-go signal.** "Yes, if we can get a data-eng half-week to build the pipeline. Without that, no."
-- **Follow-up → commit to something specific and small.** "I'll run the same analysis on the mobile cohort by end of week and share a one-pager."
-- **Challenge → do not fold. Restate the evidence, name the alternative interpretation, say why you find yours more likely.** "I understand the concern. The reason I think this isn't {alternative} is {specific piece of evidence}. That said, {the honest limit of my case}."
+## Example (illustrative)
 
-Without the tag, Claude's default is to answer everything as a mix of methodology and follow-up — which reads as vague and non-committal in an exec setting.
+The meeting: a 20-minute readout to a VP of Product. The finding: mobile users convert 15 points lower than desktop, and the gap is concentrated at the payment step.
 
----
+The kind of output to aim for, top three of eight:
 
-## Example
-
-**Meeting**: 20-minute readout to the VP of Product on a piece of work showing that mobile users convert 15pp lower than desktop, concentrated at the payment step.
-
-**Claude output (excerpt, top 3 of 8 questions)**:
-
-> **Q1 (very likely) — "How much is this worth to fix?"**
+> **Q1 (very likely): "How much is this worth to fix?"**
 > Category: BUSINESS IMPLICATION
-> Draft answer: If we closed half the mobile-vs-desktop gap at the payment step, we'd add roughly 4pp to overall mobile checkout completion. On current mobile checkout volume (~120K/month), that's ~4,800 additional completed purchases per month. At the current mobile AOV of $52, that's ~$250K/month or ~$3M/year in incremental revenue. The main sensitivity is the assumption of "half the gap" — the real number depends on which specific friction we find and fix.
-> Follow-up: "I'll rerun the sensitivity with 25% and 75% closure assumptions and send tomorrow."
-> ⚠️ Gap to close before meeting: I need to verify the current mobile AOV number is fresh (the 52 figure is from Q2; check Q3 pull).
+> Draft: If we closed half the mobile vs. desktop gap at payment, mobile checkout completion would go up about 4 points. At current mobile checkout volume (~120K a month) that's ~4,800 more completed purchases a month, and at a mobile AOV of $52, roughly $250K a month or $3M a year. The big assumption is "half the gap." The real number depends on which friction we find and fix.
+> Follow-up: "I'll rerun it with 25% and 75% closure and send it tomorrow."
+> Gap to close before the meeting: confirm the $52 AOV is current (it's from Q2).
 >
-> **Q2 (very likely) — "Is it the payment method or the payment form?"**
+> **Q2 (very likely): "Is it the payment method or the payment form?"**
 > Category: METHODOLOGY / SCOPE
-> Draft answer: The analysis doesn't distinguish those. What I know: the drop-off happens between "payment_info_entered" and "purchase_complete". That's after the user has picked a payment method and tapped through to submit, so it's more likely to be the submission step than the method-picker. But I haven't instrumented the sub-steps within payment_info yet — this would need a separate analysis to say definitively.
-> Follow-up: "I can add sub-step instrumentation and rerun the analysis in ~1 week."
+> Draft: This analysis can't tell. What I know is that the drop happens between "payment_info_entered" and "purchase_complete," which is after the user has picked a method and tapped submit, so the submit step is more likely than the method picker. I haven't instrumented the steps inside payment yet.
+> Follow-up: "I can add sub-step tracking and rerun in about a week."
 >
-> **Q3 (likely) — "How confident are you that this isn't a mix issue?"**
+> **Q3 (likely): "How sure are you this isn't just a mix difference?"**
 > Category: CHALLENGE
-> Draft answer: Pretty confident. I checked per-country and per-acquisition-source rates and the mobile-vs-desktop gap holds within each of those. So the 15pp isn't being driven by, e.g., cheaper mobile traffic from a specific market dragging the average down. What I can't rule out is a mix shift on some dimension I didn't segment on — I only had four attributes to work with. If you have a specific hypothesis (e.g., "is it the app vs. mweb split?"), I can check that specifically.
-> Follow-up: none proactively; offer to check specific dimensions if the exec names one.
+> Draft: Fairly sure. The mobile vs. desktop gap holds within each country and each acquisition source, so it isn't cheaper mobile traffic from one market pulling the average down. I can't rule out a difference on a dimension I didn't have, since I only had four. If you have one in mind, like app vs. mobile web, I can check it.
 >
-> [... Q4-Q8 omitted ...]
+> **Wildcard:** "What does finance think of the $3M?" (if this VP has been asking how DS numbers line up with finance's forecast). Prepared answer: it's a directional estimate for prioritizing, not booked revenue, and I'm happy to bring finance in before we scope the work.
 >
-> **Wildcard**: "What does finance say about the projected $3M number?" This VP has been asking a lot about how DS numbers reconcile with finance's forecast recently. Prepared answer: I haven't run this by finance because the projection is a directional estimate for prioritization, not a booked-revenue commitment. Happy to loop them in before we scope the work.
->
-> **Questions I hope they don't ask**:
-> - "Why is the payment step 15pp worse on mobile? I'd expect it to be worse but not that much." (Because I don't have a good root cause, only the location of the drop-off. I'd need to answer this by pointing to next steps.)
-> - "How does this compare to competitors?" (I don't have benchmarks. If pressed, I'll have to say so.)
+> **Questions I hope they don't ask:** "Why is it 15 points worse? I'd expect worse, but not that much." (I know where it happens, not why.) "How does this compare to competitors?" (No benchmarks. I'd have to say so.)
 
----
+## Where it goes wrong
 
-## Failure modes
+The draft answers are too polished. They read like a consultant wrote them: grammatical, careful, and a bit empty. Edit them into what you'd actually say. "Fairly sure" works better than "highly confident, based on multi-dimensional segmentation analysis" in most rooms.
 
-**Claude's draft answers are too polished.** Default Claude output reads like a management-consultant response — grammatical, calibrated, and slightly vacant. The prep is only useful if you edit the answers into something you'd actually say. "Pretty confident" beats "Highly confident, based on multi-dimensional segmentation analysis" in most rooms.
+Don't skip the wildcard. Spending ninety seconds on "what would the CFO think of this?" often turns up a real gap.
 
-**The wildcard is often the most useful question.** Take it seriously. Reviewing your notes and thinking "what does the CFO think about this?" for 90 seconds routinely surfaces a real gap in the analysis.
+The questions you hope they don't ask can change the analysis. The point isn't to rehearse a deflection. If you're hoping nobody asks about the counterfactual, you probably need one before the meeting.
 
-**Prep for questions you don't want changes your work.** The most productive use of the "questions I hope they don't ask" section is not to memorize deflections. It's to notice that if you're hoping the exec doesn't ask "what's the counterfactual?", you should probably have a counterfactual before the meeting. Prep sometimes makes you redo the work — that's a feature, not a bug.
+Take the category tags out of anything you print. They're for shaping your answer, not for the exec.
 
-**Category tags leak in.** Delete "Category: BUSINESS IMPLICATION" from your printed prep. It's for framing your answer, not for the exec to see. This sounds obvious; DS have accidentally left it in.
+The exec description matters. Claude gives different questions for a head of growth, a head of product, and a CFO, and the differences are large. "Senior stakeholder" gets you generic prep.
 
-**Wrong exec calibration.** Claude will produce different questions if you describe the exec as "Head of Growth" vs. "Head of Product" vs. "CFO" — and the questions differ a lot. If your one-line exec description is generic ("senior stakeholder"), the prep is generic. Give Claude something to work with.
+## When not to bother
 
-## When to skip
-
-- **Peer or team meetings.** Overkill; five minutes of thinking beats this workflow.
-- **Rehearsal loops where you have a slide count constraint.** If you're prepping a 3-slide deck for a 5-minute check-in, the "8 questions" scaffold is too much.
-- **Meetings where the exec has already seen the pre-read.** Different mode; the questions will be much more specific and less predictable. Handle those with the async response, not with prep.
+- Team or peer meetings. Five minutes of thinking is enough.
+- A three-slide check-in. Eight questions is too much.
+- Meetings where the exec already read the pre-read. Their questions will be more specific, so respond to those directly.
 
 ## Related patterns
 
-- Pattern 04 (A/B readout skeleton) — the readout you feed *into* this prep should be one you already ran through pattern 04 or 07.
-- Pattern 05 (calibrated language) — apply to the draft answers before the meeting. Pattern 15 gives you the answers; pattern 5 tunes the confidence level.
-- Pattern 09 (pre-mortem) — the "questions I hope they don't ask" section is a specific application of the pre-mortem idea, focused on the meeting rather than the analysis.
+- Pattern 04 (A/B readout skeleton) and pattern 07 (exec TL;DR): the readout you feed into this should already have been through one of those.
+- Pattern 05 (calibrated language): run it on your draft answers before the meeting.
+- Pattern 09 (pre-mortem): the "questions I hope they don't ask" section is a pre-mortem for the meeting instead of the analysis.

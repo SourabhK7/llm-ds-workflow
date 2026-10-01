@@ -1,12 +1,10 @@
 # Example: A/B readout using patterns 04 + 05
 
-A full worked example of drafting an experiment readout with the skeleton pattern (04) followed by the calibrated language pass (05).
-
----
+Drafting an experiment readout with the skeleton (pattern 04), then running the calibrated language pass (pattern 05).
 
 ## The situation
 
-Imagine a product DS on a growth team. The team ran an experiment testing whether adding a "Save your progress" prompt during onboarding improves activation. The numbers are realistic but the details are fabricated — no real Adobe or other company data.
+A data scientist on a growth team. The team tested whether adding a "Save your progress" prompt during onboarding improves activation. The numbers are realistic but made up. None of this is real Adobe or other company data.
 
 ### Raw inputs to the prompt
 
@@ -46,7 +44,7 @@ Segments:
 
 ## Step 1: Apply pattern 04 (skeleton)
 
-**Claude's first draft** (abbreviated — showing the full structure):
+Claude's first draft (shortened, but with every section):
 
 ### TL;DR
 The "save your progress" onboarding prompt increased Day 1 activation by 7.3% (38.1% → 40.9%, p=0.004). Guardrails were clean. We recommend shipping to 100% of new web signups in the tested geographies.
@@ -79,22 +77,20 @@ Signup friction is a real lever for activation. A simple modal — implemented i
 
 ## Step 2: Apply pattern 05 (calibrated language pass)
 
-Claude's calibration review identified three phrases to adjust:
+The calibration pass looked at three phrases:
 
-1. **"increased Day 1 activation by 7.3%"** in the TL;DR — this is technically OK because it's a properly-run A/B test, but "associated with a 7.3% increase" is slightly more honest about the fact that the point estimate has uncertainty around it. The CI is already reported elsewhere, so either phrasing works. Kept the original; this is a well-powered experiment.
+1. "increased Day 1 activation by 7.3%" in the TL;DR. Fine for a properly run A/B test, though "associated with a 7.3% increase" is a little more honest about the uncertainty around the point estimate. The CI is reported elsewhere, so either works. I kept the original, since this test was well powered.
 
-2. **"Signup friction is a real lever for activation"** in "What this means" — this is an overclaim. One experiment on one lever does not establish that friction broadly is a lever. Changed to: "This experiment is consistent with signup friction being a meaningful driver of activation, at least for the modal form of intervention we tested."
+2. "Signup friction is a real lever for activation" in "What this means." That's an overclaim: one test of one change doesn't show that friction in general is a lever. It became: "This experiment is consistent with signup friction being a meaningful driver of activation, at least for the modal form of intervention we tested."
 
-3. **"consistent with our team's broader thesis"** — retained, because "consistent with" is already calibrated language.
+3. "consistent with our team's broader thesis." Left alone, since "consistent with" is already careful.
 
-The final doc ships with those two changes. Total time: ~4 minutes for the first draft from Claude, ~2 minutes for the calibration pass, ~10 minutes for my own review and small edits. vs. ~75 minutes to write from scratch.
+So one change made it into the final doc. About 4 minutes for Claude's first draft, 2 for the calibration pass, and 10 for my own review, against about 75 to write it from scratch.
 
----
+## What I changed myself
 
-## What I edited in my own review (not done by Claude)
+- Added a "Who was involved" section crediting the engineers and the designer. That's knowing your org, which a model can't do for you.
+- Named the specific launch meeting in the recommendation.
+- Added a sentence about what we learned about running the test itself: we scoped it too narrowly, and expanding it would have cost engineering very little.
 
-- Added a section at the bottom titled "Who was involved" crediting the eng team and the designer, which is org-specific social hygiene an LLM can't do for you.
-- Changed the recommendation line to name the specific launch meeting (internal context).
-- Added one sentence about what the team learned about the *process* of running this experiment (we scoped it too narrowly; the eng cost to expand was small).
-
-These are the kinds of edits that stay human. The LLM handles the structure and language; the DS handles the judgment calls and the org-specific context.
+Those are the edits that stay with a person. The model handles structure and wording, and you handle the judgment calls and the context about your org.

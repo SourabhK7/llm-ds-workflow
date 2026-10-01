@@ -2,109 +2,91 @@
 
 [![test](https://github.com/SourabhK7/llm-ds-workflow/actions/workflows/test.yml/badge.svg)](https://github.com/SourabhK7/llm-ds-workflow/actions/workflows/test.yml)
 
-Fifteen prompt patterns for product data science — warehouse SQL drafting, A/B test readouts, stakeholder summaries, anomaly investigation, LLM-as-judge eval design, retention narratives, segmentation storytelling, and exec Q&A prep — plus a Python library that renders them programmatically and worked examples showing what each produces. Built around Claude (chat + API) and Cursor.
+The prompts I use for product data science work with Claude and Cursor: drafting SQL against a warehouse, A/B test readouts, exec summaries, figuring out why a metric moved, and a few more. There's also a small Python library that fills in the templates, and worked examples of what each one produces.
 
-These are the patterns I run in production, day-to-day. Time-to-first-draft on the recurring work types (ad-hoc SQL, experiment readouts, exec summaries) is down about 50%, informally tracked over several weeks. That's not the interesting number — the interesting number is how much cognitive load moves off the "write it from scratch" step and onto "edit a solid draft," which is a different kind of work and a much lower activation energy at 4pm on a Friday.
+Patterns 1 to 11 are the ones I use regularly. On the recurring work (ad-hoc SQL, experiment readouts, exec summaries) my time to a first draft is down about 50%, tracked informally over a few weeks. The bigger change for me is that most of the work becomes editing a decent draft instead of writing from a blank page, which is a lot easier at 4pm on a Friday. Patterns 12 to 15 are newer and haven't been through as much real use yet.
 
-Nothing here is "prompts that sound clever." Every pattern is a scaffold that reliably produces first drafts good enough to edit rather than rewrite, on real messy warehouse data, for real PMs and design leads who won't tolerate jargon.
+None of these are clever prompt tricks. Each one is a structure that gets you a first draft worth editing, on messy warehouse data, for PMs and design leads who don't want jargon.
 
----
+## Why I wrote these down
 
-## Why this exists
+Most "AI for data science" material is either toy examples that fall apart on a real warehouse schema, or advice like "give Claude more context." Neither helps much when a PM pings you at 4pm wanting a readout by end of day.
 
-Most "AI for data science" content is either (a) toy examples that break on real warehouse schemas, or (b) vague advice like "give Claude more context." Neither is useful when you have a Slack from your PM at 4pm asking for a readout by EOD.
+These are narrower. The SQL patterns assume a messy, undocumented warehouse with partitioned event tables and no clean dbt models. The A/B readout patterns assume the reader is a PM, not a statistician, so the language has to be careful without being technical. The summary patterns assume the analysis is done and you just need to shorten it without losing the caveats.
 
-The patterns here are narrower and more opinionated:
+Each pattern has the prompt, a short example of what it produces, and the ways it's gone wrong for me and what I do about it.
 
-- **SQL drafting** assumes you work in a messy, undocumented warehouse with partitioned event tables and no clean dbt models.
-- **A/B readouts** assume the reader is a PM or design lead, not a statistician — so the language has to be calibrated, not jargon-heavy.
-- **Stakeholder summaries** assume you've already done the analysis and just need to compress it without losing the caveats.
-
-Each pattern includes the prompt, a short example of what it produces, and — importantly — the failure modes I've hit and how I mitigate them.
-
----
-
-## The 15 patterns
+## The patterns
 
 ### Warehouse SQL
-1. [Schema-anchored query drafting](patterns/01-schema-anchored-sql.md) — how to get Claude to write SQL against a warehouse it's never seen without hallucinating columns
-2. [Cohort definition clarifier](patterns/02-cohort-clarifier.md) — turning a vague PM request ("engaged users who churned") into a defensible operational definition before writing any SQL
-3. [SQL self-review](patterns/03-sql-self-review.md) — a second-pass prompt that catches the specific mistakes LLMs make in window functions and joins
+1. [Schema-anchored query drafting](patterns/01-schema-anchored-sql.md): getting Claude to write SQL against a warehouse it's never seen without inventing columns
+2. [Cohort definition clarifier](patterns/02-cohort-clarifier.md): turning a vague request ("engaged users who churned") into a definition you can defend, before writing any SQL
+3. [SQL self-review](patterns/03-sql-self-review.md): a second pass that catches the mistakes LLMs tend to make in window functions and joins
 
 ### A/B test readouts
-4. [Experiment readout skeleton](patterns/04-ab-readout-skeleton.md) — a structured first draft that forces the right sections in the right order
-5. [Calibrated language pass](patterns/05-calibrated-language.md) — rewrites over-confident claims ("X caused a lift") into honest ones ("X is consistent with a lift") without becoming mealy-mouthed
-6. [Null result framing](patterns/06-null-result-framing.md) — the single hardest writing task in product DS, and the one LLMs help with most
+4. [Experiment readout skeleton](patterns/04-ab-readout-skeleton.md): a first draft with the right sections in the right order
+5. [Calibrated language pass](patterns/05-calibrated-language.md): rewriting "X caused a lift" as "X is consistent with a lift" without making it mushy
+6. [Null result framing](patterns/06-null-result-framing.md): the hardest writing task in product DS, and the one where LLMs help me the most
 
 ### Stakeholder communication
-7. [Exec TL;DR compression](patterns/07-exec-tldr.md) — producing a 3-bullet summary that preserves the caveats the PM will otherwise drop
-8. [Slack-ready explanation](patterns/08-slack-ready.md) — same finding, different register; optimized for "can be understood without opening a doc"
-9. [Pre-mortem for analyses](patterns/09-pre-mortem.md) — before you run the query, have Claude surface the ways this analysis could be wrong or misleading
+7. [Exec TL;DR](patterns/07-exec-tldr.md): a 3-bullet summary that keeps the caveats a PM would otherwise drop
+8. [Slack-ready explanation](patterns/08-slack-ready.md): the same finding, written so someone can follow it without opening a doc
+9. [Pre-mortem for analyses](patterns/09-pre-mortem.md): before running the query, list the ways this analysis could be wrong or misleading
 
-### Metric hygiene & diagnostics
-10. [Metric interpretation sanity check](patterns/10-metric-sanity-check.md) — before you share a number, a fast check that the numerator/denominator/time window actually means what you think it means
-11. [Anomaly decomposition](patterns/11-anomaly-decomposition.md) — when a metric moves and a PM asks "why?", a ranked decomposition tree that forces you to rule out instrumentation and composition shifts *before* talking about behavior
+### Metric checks and diagnostics
+10. [Metric sanity check](patterns/10-metric-sanity-check.md): before sharing a number, a quick check that the numerator, denominator and time window mean what you think
+11. [Anomaly decomposition](patterns/11-anomaly-decomposition.md): when a metric moves and someone asks why, a ranked list of things to check, starting with instrumentation and traffic mix before behavior
 
-### Eval & analysis design
-12. [LLM-as-judge rubric authoring](patterns/12-llm-as-judge-rubric.md) — co-write eval rubrics with Claude that actually discriminate, with behavioral anchors at every score point instead of adjectives
-13. [Retention curve narrative](patterns/13-retention-curve-narrative.md) — describe D1/D7/D30 curves in a way a PM can act on, without the survivorship-bias landmines
-14. [Segmentation storytelling](patterns/14-segmentation-storytelling.md) — turn k-means / clustering output into named personas with actionable pen portraits, not centroid tables
-15. [Exec Q&A prep](patterns/15-exec-qa-prep.md) — anticipate the 6-8 hardest questions an exec will ask a readout, and prep calibrated answers to each
+### Evals and analysis design (newer)
+12. [LLM-as-judge rubrics](patterns/12-llm-as-judge-rubric.md): writing eval rubrics where every score level describes something you can point to in the output
+13. [Retention curve write-ups](patterns/13-retention-curve-narrative.md): describing D1/D7/D30 curves so a PM can act on them, without comparing cohorts that aren't old enough yet
+14. [Explaining segments](patterns/14-segmentation-storytelling.md): turning clustering output into named segments people will remember and use
+15. [Exec Q&A prep](patterns/15-exec-qa-prep.md): the hardest questions an exec is likely to ask about a readout, with draft answers
 
----
+## How I use them
 
-## How I use this in practice
+Mornings, if a readout or deep dive is due, I open the matching pattern in Cursor next to the notebook, paste in the schema, experiment config or numbers, and get a first draft in about a minute.
 
-Daily workflow looks roughly like:
+For ad-hoc SQL I keep pattern 1 in a saved Claude chat with the main table schemas already loaded. A new query takes about 30 seconds to draft and 2 minutes to review.
 
-1. **Morning**: if I have an experiment readout or deep-dive due, I open the relevant pattern in Cursor alongside the notebook. I paste the schema / experiment config / raw numbers into the prompt template and get a first draft in under a minute.
-2. **Midday**: for ad-hoc SQL, I keep pattern 01 (schema-anchored drafting) in a saved Claude chat with my warehouse's key table schemas already loaded as context. New queries take ~30 seconds to draft, ~2 minutes to review.
-3. **End of day**: if I'm writing a summary for a PM or exec, I use pattern 07 on the raw analysis doc. I almost always edit the output — but editing takes 5 minutes instead of writing taking 30.
+When I'm writing up something for a PM or exec, I run pattern 7 on the analysis doc. I almost always edit what comes out, but editing takes 5 minutes and writing it from scratch took 30.
 
-The compounding value is less about any single prompt and more about **having a consistent structure** to fall back on when I'm tired or context-switching.
+Most of the value isn't any single prompt. It's having the same structure to fall back on when I'm tired or switching between things.
 
----
+## What they don't do
 
-## What these patterns do NOT do
+- They don't replace your own judgment about whether the analysis is valid. Pattern 5 fixes the language, not the method. (I used to say here that an LLM won't notice a peeking problem or a sample ratio mismatch. When I actually tested that in [llm-data-guardrails](https://github.com/SourabhK7/llm-data-guardrails), Claude Sonnet and Opus caught both every time. I'd still check myself.)
+- They don't help much with genuinely new analyses. They speed up work you do repeatedly. The first time you analyze a new kind of experiment or metric, you still have to think it through.
+- You still have to read the output. I've caught Claude inventing a column name, misreading a funnel step, and flipping the direction of an effect. It's rare, but it happens, so everything gets a human read.
+- They won't fix missing documentation. If your schemas are a mess, you need a data dictionary first. The patterns assume you can give decent schema context.
 
-Being honest about this because it matters for anyone using them:
+## Time saved on my own work
 
-- **They do not replace judgment on statistical validity.** Pattern 05 helps calibrate *language*, not methodology. If your test had a peeking problem or an SRM, the LLM won't catch it.
-- **They do not work well on truly novel analyses.** These are leverage tools for recurring work types. The first time you analyze a new kind of experiment or metric, you still have to think from scratch.
-- **They do not remove the need to read the output carefully.** I've caught Claude confidently inventing a column name, misinterpreting a funnel step, and flipping the direction of an effect. All three happen rarely, but they happen. Every draft gets a human review pass.
-- **They are not a substitute for warehouse documentation.** If your schemas are genuinely chaotic, no prompt pattern will save you — you need a data dictionary. The patterns assume you can provide decent schema context.
-
----
-
-## Measured impact (on my own work)
-
-Tracked informally across ~6 weeks on Adobe Acrobat B2B analytics work:
+Tracked informally over about 6 weeks on Adobe Acrobat B2B analytics work:
 
 | Task type | Median time before | Median time after | Notes |
 |---|---|---|---|
 | Ad-hoc SQL (simple) | ~15 min | ~5 min | Biggest gains here |
-| Ad-hoc SQL (multi-CTE) | ~45 min | ~25 min | LLM drafts the skeleton; I do the thinking on joins |
-| Experiment readout | ~90 min | ~45 min | Mostly structural time savings |
-| Exec summary | ~30 min | ~10 min | Format consistency is the main win |
-| Pre-mortem / analysis planning | N/A (didn't do it) | ~10 min | New habit the LLM enabled |
-| Anomaly investigation ("why is X down?") | ~60 min | ~25 min | Ordering discipline is where the savings come from |
+| Ad-hoc SQL (multi-CTE) | ~45 min | ~25 min | The LLM drafts the skeleton; I do the thinking on joins |
+| Experiment readout | ~90 min | ~45 min | Mostly from not having to work out the structure each time |
+| Exec summary | ~30 min | ~10 min | Consistent format is the main win |
+| Pre-mortem / planning | didn't do it | ~10 min | A habit I only picked up because it got cheap |
+| "Why is X down?" | ~60 min | ~25 min | Checking things in the right order is where the time goes |
 
-Caveats: these are my own timings on my own work, not a controlled study. The "before" numbers are from memory and project retrospectives, not a log. Take them as directional.
+These are my own timings on my own work, not a controlled study, and the "before" numbers come from memory and project retros, not a log. Treat them as rough.
 
----
-
-## Structure
+## What's in the repo
 
 ```
 llm-ds-workflow/
-├── README.md                  # this file
+├── README.md
 ├── patterns/                  # the 15 pattern docs
 ├── llm_ds_workflow/           # Python library: load + render templates
 │   ├── __init__.py
 │   ├── core.py                # discovery + render logic
 │   └── __main__.py            # CLI: list / show / render
 ├── tests/                     # pytest coverage of the library
-├── examples/                  # full before/after examples with real(istic) inputs
+├── examples/                  # full before/after examples with realistic inputs
 │   ├── ab-readout-example.md
 │   ├── sql-drafting-example.md
 │   ├── exec-summary-example.md
@@ -117,11 +99,9 @@ llm-ds-workflow/
     └── exec-summary.txt
 ```
 
----
+## Using it from Python
 
-## Using from Python (optional)
-
-The patterns and templates are also exposed as a small Python library so you can render a filled-in prompt programmatically instead of copy-pasting.
+The templates are also available as a small library, so you can fill one in from a notebook or script instead of copy-pasting.
 
 ```bash
 pip install -e .
@@ -138,11 +118,11 @@ filled = render("ab-readout", {
     "hypothesis": "adding a save-progress modal improves activation",
     # ...
 })
-print(filled.text)         # the ready-to-send prompt
+print(filled.text)         # the prompt, ready to send
 print(filled.missing)      # placeholders you didn't fill
 ```
 
-CLI equivalent:
+Or from the command line:
 
 ```bash
 python -m llm_ds_workflow list
@@ -150,30 +130,22 @@ python -m llm_ds_workflow list --templates
 python -m llm_ds_workflow render ab-readout --var-file experiment.yaml --output prompt.txt
 ```
 
-A complete end-to-end demo (fabricated experiment result → filled template → optional Claude call) is at [`examples/run_ab_readout.py`](examples/run_ab_readout.py). A checked-in rendered example at [`examples/ab-readout-rendered-example.md`](examples/ab-readout-rendered-example.md) shows what the filled prompt looks like without needing to run anything.
+[`examples/run_ab_readout.py`](examples/run_ab_readout.py) goes end to end: a made-up experiment result, the filled template, and an optional Claude call. [`examples/ab-readout-rendered-example.md`](examples/ab-readout-rendered-example.md) shows the filled prompt if you don't want to run anything.
 
-This library exists so the templates can plug into notebooks and analysis scripts, not just chat windows. The prose patterns in `patterns/` are still the primary artifact — the library is a convenience layer over them.
+The pattern docs are still the main thing here. The library just saves copy-pasting.
 
----
+## Using it with Cursor
 
-## Using with Cursor
+With Cursor's composer and `@docs`/`@code` references, these work well against a live notebook or SQL file. My setup:
 
-Cursor's composer + `@docs` and `@code` references make these patterns work well against a live notebook or SQL file. My Cursor setup:
+- A `.cursorrules` file with the language guidance from pattern 5, so any analysis text the AI writes in my notebooks follows it.
+- Saved prompts for patterns 1, 4 and 7, the three I use most.
+- I paste the schema at the top of each SQL session instead of trusting Cursor to find it.
 
-- **Rules file** (`.cursorrules`) includes the language calibration guidance from pattern 05, applied repo-wide so any AI-generated analysis text in notebooks inherits it.
-- **Saved prompts** for patterns 01, 04, and 07 — the three I use most.
-- **Context hygiene**: I paste the schema at the top of each SQL session rather than relying on Cursor to find it. Explicit > implicit.
+There's a minimal `.cursorrules` example in [templates/cursorrules-example.txt](templates/cursorrules-example.txt).
 
-A minimal `.cursorrules` example is in [templates/cursorrules-example.txt](templates/cursorrules-example.txt).
+## Feedback
 
----
+This is a personal playbook, so I'm not really looking for PRs. But if you try a pattern and it breaks in an interesting way, please open an issue. I'm especially curious how they hold up on Snowflake or BigQuery, since I mostly use Databricks.
 
-## Contributing / feedback
-
-This is a personal playbook, so I'm not looking for PRs, but if you try a pattern and it breaks in an interesting way, open an issue — I'd genuinely like to know. Especially interested in failure modes on warehouse types I don't use (Snowflake, BigQuery — I mostly work in Databricks).
-
----
-
-## Author
-
-Sourabh Koul — Data Scientist, San Jose CA. [LinkedIn](https://www.linkedin.com/in/sourabhkoul/) · [GitHub](https://github.com/SourabhK7)
+Sourabh Koul · [LinkedIn](https://www.linkedin.com/in/sourabhkoul/) · [GitHub](https://github.com/SourabhK7)

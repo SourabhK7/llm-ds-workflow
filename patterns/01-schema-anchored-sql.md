@@ -1,12 +1,10 @@
-# Pattern 01 — Schema-anchored query drafting
+# Pattern 01: Schema-anchored query drafting
 
-**Problem this solves:** You need to write SQL against a warehouse Claude has never seen. Left to its own devices, it will confidently invent column names that sound right (`user_id`, `event_timestamp`, `session_id`) but don't exist in your schema. This wastes a review cycle every time.
+You need SQL against a warehouse Claude has never seen. Left alone, it will confidently use column names that sound right (`user_id`, `event_timestamp`, `session_id`) but don't exist in your schema, and you lose a review cycle every time.
 
-**The pattern:** Pin the schema as structured context at the top of the prompt, explicitly tell Claude what it does *not* know, and ask for a query *plus* a list of assumptions it made.
+The fix: put the schema at the top of the prompt, tell Claude plainly what it doesn't know, and ask for the query plus a list of the assumptions it made.
 
----
-
-## The prompt template
+## The prompt
 
 ```
 You are writing SQL for a Databricks warehouse. Here are the ONLY tables and
@@ -34,25 +32,28 @@ Please produce:
 1. A SQL query that answers the question.
 2. A short list of assumptions you had to make (e.g., how you defined "active
    user", which time window you used, what you assumed about NULLs).
-3. Any columns or tables you wished existed but didn't — so I can check whether
+3. Any columns or tables you wished existed but didn't, so I can check whether
    I forgot to include them in the schema above.
 
 Keep the query readable: use CTEs rather than nested subqueries where it helps.
 Always filter on partition_date when querying user_actions.
 ```
 
-## Why each piece matters
+## Why each part is there
 
-- **"ONLY tables and columns"** — without this, Claude will fill in gaps with plausible guesses. With it, hallucination rate drops sharply in my experience.
-- **Value lists for categorical columns** (`'web', 'ios', 'android'`) — prevents Claude from filtering on `surface = 'mobile'` when that's not a real value.
-- **Partition hint** — the #1 performance mistake LLMs make on Databricks/Hive is forgetting partition filters. Put it in the schema comment, not just in the natural language question.
-- **"Columns you wished existed"** — this is the most underrated part of the prompt. It surfaces schema gaps I didn't know I had, and catches cases where Claude *wanted* to hallucinate but I told it not to.
+"ONLY tables and columns": without it, Claude fills gaps with plausible guesses. With it, the made-up columns mostly go away, at least in my experience.
 
-## Example output
+The value lists on categorical columns (`'web', 'ios', 'android'`) stop it from filtering on `surface = 'mobile'` when that value doesn't exist.
 
-Input question: "How many weekly active users did we have in Q1, broken down by plan tier?"
+The partition note: forgetting the partition filter is the most common performance mistake I see LLMs make on Databricks and Hive. Put it in the schema comment, not just in the question.
 
-Claude's response (abbreviated):
+"Columns you wished existed" is the part people skip, and it's the most useful. It shows me gaps in the schema I didn't know about, and it catches the cases where Claude wanted to invent something but I told it not to.
+
+## Example
+
+Question: "How many weekly active users did we have in Q1, broken down by plan tier?"
+
+Claude's response (shortened):
 
 ```sql
 WITH weekly_active AS (
@@ -74,22 +75,20 @@ ORDER BY 1, 2;
 ```
 
 Assumptions:
-- "Weekly active" defined as any row in `user_actions` in a given week.
-- Week starts Monday (Databricks default for `DATE_TRUNC('week', ...)`).
-- Q1 = Jan 1 to Mar 31.
-- Users with no match in `prod_core.users` are counted but have NULL plan_tier.
+- "Weekly active" means any row in `user_actions` that week.
+- Weeks start Monday (Databricks default for `DATE_TRUNC('week', ...)`).
+- Q1 is Jan 1 to Mar 31.
+- Users with no match in `prod_core.users` are still counted, with a NULL plan_tier.
 
-Wished existed: a flag for bot/internal traffic; a "primary plan tier" for users who changed tiers mid-quarter.
+Wished existed: a flag for bot/internal traffic, and a "primary plan tier" for users who changed tiers during the quarter.
 
----
+## Where it's gone wrong for me
 
-## Failure modes I've hit
+- Week start for date truncation differs by warehouse. Databricks starts weeks on Monday, BigQuery on Sunday by default, and Claude doesn't always get it right for other dialects. Name the dialect in the prompt if it matters.
+- MAP and STRUCT access syntax differs too. Claude has used Snowflake syntax (`properties:key::string`) when I asked for Databricks (`properties['key']`). Putting an example access in the schema comments fixes it.
+- It defaults to exact `COUNT(DISTINCT)`, which can be slow on big event tables. If that matters, add "use approx_count_distinct for cardinality estimates on user_actions."
 
-- **Date-truncation week start** varies by warehouse. Databricks uses Monday; BigQuery default is Sunday. Claude doesn't always get this right for non-Databricks dialects. **Mitigation:** specify the dialect in the prompt if it matters.
-- **MAP/STRUCT column access syntax** differs across warehouses. Claude sometimes uses Snowflake syntax (`properties:key::string`) when I asked for Databricks (`properties['key']`). **Mitigation:** include an example access in the schema comments.
-- **COUNT(DISTINCT) vs approx** — Claude defaults to exact counts, which can be slow on large event tables. **Mitigation:** add "use approx_count_distinct for cardinality estimates on user_actions" to the prompt if relevant.
+## When not to bother
 
-## When to skip this pattern
-
-- One-liner queries against tables you use every day. Just write them.
-- Highly-templated queries that already exist in your repo; fuzzy-find and copy, don't re-generate.
+- One-line queries against tables you use every day. Just write them.
+- Queries that already exist in your repo. Find and copy them instead of regenerating.

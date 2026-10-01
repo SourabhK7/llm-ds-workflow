@@ -1,12 +1,10 @@
-# Pattern 10 — Metric interpretation sanity check
+# Pattern 10: Metric sanity check
 
-**Problem this solves:** You've pulled a number from the warehouse. Before you put it in a readout or share it in Slack, you want a fast check that the number actually means what you think it means — that you haven't made a subtle definitional error that will embarrass you when a stakeholder asks a follow-up question.
+You've pulled a number from the warehouse. Before it goes in a readout or a Slack thread, you want a quick check that it means what you think, and that there isn't a definition mistake waiting to embarrass you when someone asks a follow-up question.
 
-**The pattern:** Describe the number you computed, how you computed it, and what decision it's meant to inform. Ask Claude to surface ways the number could be technically correct but misleading — specifically around metric definition, not around the query itself (pattern 03 covers SQL bugs; this covers interpretation bugs).
+Describe the number, how you computed it, and what decision it feeds. Ask Claude for ways it could be technically right but misleading. This is about what the metric means, not the query. Pattern 03 covers SQL bugs; this covers interpretation bugs.
 
----
-
-## The prompt template
+## The prompt
 
 ```
 I computed the following metric and I'm about to share it with a stakeholder.
@@ -46,35 +44,33 @@ For each check: if it passes, say so briefly. If there's an issue,
 describe it concretely and suggest how to fix or caveat it.
 ```
 
-## Why this pattern exists separately from pattern 09 (pre-mortem)
+## How this differs from pattern 09
 
-Pattern 09 is for before you run the analysis. This pattern is for after you have a number. The pre-mortem asks "what could go wrong with this analysis approach?" This pattern asks "does this specific number mean what I think it means?"
+Pattern 09 is for before you run an analysis: what could go wrong with this approach? This one is for after you have a number: does this specific number mean what I think? I use the pre-mortem for analyses I design from scratch, and this for quick numbers I'm about to share.
 
-In practice: pre-mortem for analyses you design from scratch; this pattern for ad-hoc numbers you computed quickly and are about to share.
+## The mistake it catches most
 
-## The single failure mode this catches most reliably
+A numerator that doesn't match the denominator is the interpretation error I see most in product DS work, and it's the hardest to spot rereading your own query.
 
-**Numerator/denominator mismatch** is the metric interpretation error I've seen most in product DS work, and it's the one that's hardest to catch by re-reading your own query.
+Take "Day 7 retention is 42%." Sounds clear, but 42% of what? Users who signed up 7 days ago? Those who signed up 7 days ago and finished onboarding? Those active on Day 1? Each gives a different number, and the choice is usually buried in a WHERE clause that made sense when you wrote it and that nobody remembers when someone asks "42% of what?" at the end of the readout.
 
-Classic example: "Day 7 retention is 42%." Sounds clear. But what's the denominator? Users who signed up 7 days ago? Users who signed up 7 days ago AND completed onboarding? Users who were active on Day 1? Each gives a different number, and the denominator choice is often implicit — buried in a WHERE clause that made sense at query-time but that no one will remember when someone asks "42% of what?" at the end of your readout.
-
-Explicitly describing numerator and denominator in the prompt forces you to articulate it, which catches the error before the stakeholder asks.
+Writing out the numerator and denominator in the prompt forces you to say it plainly, which catches it before the stakeholder does.
 
 ## Example
 
-**The number:** Day 30 retention, 18.3%.
+The number: Day 30 retention, 18.3%.
 
-**How computed:** Users who signed up in January 2026 and had at least one action in the app on Day 30 (±1 day window), divided by all users who signed up in January 2026.
+How it was computed: users who signed up in January 2026 and did at least one thing in the app on Day 30 (±1 day), divided by all January 2026 signups.
 
-**Decision:** Whether to invest in a retention improvement initiative for new users.
+The decision: whether to fund a retention push for new users.
 
-**Claude's check:**
+Claude's check:
 
 > **1. Numerator/denominator mismatch: ⚠️ Mild issue.**
 > The denominator is all January signups. The numerator is users who were active
 > on Day 30. But "Day 30 ±1 day" means you're measuring activity on day 29, 30,
-> or 31 after signup. For users who signed up January 31, "Day 30" is March 2
-> — which is in the future at time of writing. These users will have a 0% Day 30
+> or 31 after signup. For users who signed up January 31, "Day 30" is March 2,
+> which is in the future at time of writing. These users will have a 0% Day 30
 > retention by construction, which deflates your rate. Either restrict to users
 > who signed up on or before February 1 (so all of them have had 30 days pass),
 > or note the caveat explicitly.
@@ -83,7 +79,7 @@ Explicitly describing numerator and denominator in the prompt forces you to arti
 >
 > **3. Definition drift: ⚠️ Note.**
 > "Day 30 retention" is sometimes defined as "returned at any point in days
-> 25–35" and sometimes as "returned on day 30 exactly." Your ±1 day window is
+> 25 to 35" and sometimes as "returned on day 30 exactly." Your ±1 day window is
 > close to convention but worth flagging in the readout if the stakeholder
 > is comparing to industry benchmarks that may use a stricter definition.
 >
@@ -95,18 +91,16 @@ Explicitly describing numerator and denominator in the prompt forces you to arti
 > If you compare this 18.3% to last month's retention or to an industry
 > benchmark, confirm the denominator definition matches. Many published
 > retention benchmarks use "Day 1 activated users" as the denominator,
-> not all signups — which would make their number look higher than yours
+> not all signups, which would make their number look higher than yours
 > even if the underlying product performance is identical.
 
-This review takes 30 seconds. The January 31 cohort issue would have surfaced as a confusing follow-up question from a PM three days later.
+That took 30 seconds. The January 31 problem would otherwise have shown up three days later as a confusing question from a PM.
 
----
+## Where it goes wrong
 
-## Failure mode
+It sometimes flags things that don't apply, like warning about direction on a metric where it's obvious (revenue, signups). Skim and use judgment. The value is in what it catches, not in acting on every line.
 
-Claude occasionally flags issues that aren't real for your specific context — for instance, it'll often warn about directionality for a metric that's obviously directional (revenue, signups). Skim and apply judgment. The value is in the checks it catches, not in implementing every suggestion.
+## When not to bother
 
-## When to skip
-
-- Numbers you've computed hundreds of times with the same definition. After 50 DAU queries, you don't need a sanity check.
-- Exploratory / for-your-eyes-only pulls where you're still figuring out what to measure.
+- Numbers you've computed hundreds of times the same way. After the fiftieth DAU query you don't need this.
+- Exploratory pulls just for you, while you're still working out what to measure.
