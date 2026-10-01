@@ -1,18 +1,14 @@
 # Example: SQL drafting with patterns 01 + 03
 
-Worked example of using the schema-anchored pattern to draft a query, then running the self-review pattern to catch issues before executing.
-
----
+Drafting a query with pattern 01, then running pattern 03's review before executing it.
 
 ## The task
 
 A PM asks: "How many of our new signups from the last month became weekly active users in their second week? Break it down by acquisition source."
 
-A realistic ad-hoc request. Needs a new-cohort definition, a WAU definition, and a join to acquisition data.
+A typical ad-hoc request. It needs a definition of the new cohort, a definition of weekly active, and a join to acquisition data.
 
----
-
-## Step 1: Draft with pattern 01
+## Step 1: draft with pattern 01
 
 Schema provided to Claude:
 
@@ -77,11 +73,9 @@ Wished existed:
 - A `is_internal_user` or bot flag to exclude test accounts.
 - An `acquisition_campaign` granularity beyond source.
 
----
+## Step 2: review with pattern 03
 
-## Step 2: Self-review with pattern 03
-
-Fed the draft back to Claude with the checklist prompt.
+I gave the draft back to Claude with the checklist prompt.
 
 Claude's review:
 
@@ -126,15 +120,10 @@ Claude's review:
 > behaves differently — it would give a timestamp exactly 7×24 hours later,
 > which may not align with midnight on day 8. Worth confirming.
 
-I confirmed with the PM that calendar-day interpretation was fine, and with the data catalog that `signup_date` is stored as DATE. Query shipped.
-
----
+I checked with the PM that calendar days were fine, and with the data catalog that `signup_date` is stored as DATE. Then I ran it.
 
 ## What this saved
 
-- Without the self-review, I probably would have caught the `< signup_date + 14 DAY` issue when I noticed the activation rate was slightly lower than expected — cost: one re-run + 20 minutes of head-scratching.
-- The timestamp vs. date ambiguity I probably would have missed and shipped.
+Without the review, I'd probably have caught the `< signup_date + 14 DAY` issue eventually, after noticing the rate looked a bit low. That's a re-run and 20 minutes of head-scratching. The timestamp vs. date question I'd probably have missed entirely.
 
-Total time: ~3 minutes for draft, ~90 seconds for review, ~2 minutes to verify the flagged concerns. ~7 minutes end-to-end for a query that would otherwise take 20.
-
-The win isn't speed alone; it's also *caught errors I wouldn't have caught unprompted*.
+About 3 minutes for the draft, 90 seconds for the review, and 2 minutes to check what it flagged, so roughly 7 minutes for a query that would otherwise take 20. The time matters less than the fact that it caught things I wouldn't have looked for.

@@ -1,39 +1,20 @@
-# Pattern 12 — LLM-as-judge rubric authoring
+# Pattern 12: LLM-as-judge rubrics
 
-**Problem this solves:** You're evaluating an LLM-powered feature (summarizer, agent, classifier, drafter) and you want more than eyeballed spot-checks. The standard move is LLM-as-judge: a stronger model scores each output against a rubric. But a bad rubric produces cheerful garbage — every output scores 4/5 and you learn nothing. A good rubric is harder to write than the feature it's evaluating.
+You're evaluating something built on an LLM (a summarizer, an agent, a drafting tool) and you want more than eyeballing a few outputs. The usual approach is an LLM judge: a model scores each output against a rubric. The catch is that a vague rubric gives you vague scores. If the levels are "poor / acceptable / excellent," almost everything lands at "good," and you've paid for API calls to learn that the judge is polite.
 
-**The pattern:** Before you run a single eval, use Claude to co-author the rubric with you. Feed it (a) the feature's purpose, (b) three or four example outputs you already know are good, bad, and borderline, and (c) the specific failure modes you're worried about. Ask it to produce criteria with *behavioral anchors at each score point*, not adjectives.
+The fix is to make every score level describe something you can point to in the output, not an adjective. "Excellent" can't be checked. "Every number in the output appears in the input at the same precision" can.
 
-The single non-negotiable move: **every score point has to describe a concrete observable, not a feeling.** "Excellent" is not a score anchor. "Uses at least two of the three source facts and does not introduce a new claim" is.
+Use Claude to draft the rubric with you, using a few outputs you've already judged yourself.
 
----
-
-## Why this exists
-
-Most "LLM-as-judge" rubrics you see in blog posts are unusable:
-
-- Score 1: poor
-- Score 3: acceptable
-- Score 5: excellent
-
-Run this on 50 outputs and you'll find the judge scores almost everything a 4. The rubric has no discriminating power because the anchors have no content. You've spent API calls to learn that the judge is polite.
-
-Worse, ambiguous rubrics let the judge and the developer both anchor on their priors. The judge says "this looks like a real analysis" and gives it a 5; the developer sees the score and ships it. Nobody has actually checked whether the output is correct.
-
-A rubric with behavioral anchors forces both the judge and reviewer to look at specific features of the output. You stop grading vibes and start grading properties.
-
----
-
-## The prompt template
+## The prompt
 
 ```
 I'm building an LLM-as-judge rubric for {feature description in one sentence}.
 
-The judged output is: {what the LLM being evaluated produces —
-e.g., "a written diagnosis of user drop-off in a funnel"}.
+The judged output is: {what the LLM being evaluated produces, e.g.
+"a written diagnosis of user drop-off in a funnel"}.
 
-Here are 3-4 example outputs, each labeled with my ground-truth
-assessment:
+Here are 3-4 example outputs, each labeled with my own assessment:
 
 EXAMPLE 1 (I would rate this: strong):
 {paste output}
@@ -48,103 +29,63 @@ EXAMPLE 3 (I would rate this: borderline):
 Why it's borderline: {2-3 sentences on the ambiguity}
 
 The specific failure modes I want the rubric to catch:
-- {failure mode 1 — e.g., "the model invents numbers not in the input"}
-- {failure mode 2 — e.g., "the model uses causal language on
-  observational data"}
-- {failure mode 3 — e.g., "the model produces valid prose but misses
-  the biggest finding"}
+- {e.g., "the model invents numbers not in the input"}
+- {e.g., "the model uses causal language on observational data"}
+- {e.g., "valid prose that misses the biggest finding"}
 
-Produce a rubric with 4-6 CRITERIA. For each criterion:
+Produce a rubric with 4-6 criteria. For each criterion:
 
 1. A one-line name.
-2. What it measures, in one sentence — grounded in something an
-   evaluator can point to in the output, not a feeling.
-3. Anchors at scores {0, 1, 2} (or 0-2 / 0-3, your choice; keep
-   the range narrow to force the judge to commit). Each anchor
-   MUST describe an observable behavior in the output. Adjectives
-   without behavior anchors ("clear", "helpful", "well-written")
-   are banned.
-4. For each anchor, 1-2 concrete examples of language or content
-   that would qualify.
+2. What it measures, in one sentence, grounded in something an
+   evaluator can point to in the output.
+3. Anchors at scores 0, 1, 2. Each anchor MUST describe an observable
+   behavior in the output. Adjectives without behavior ("clear",
+   "helpful", "well-written") are not allowed.
+4. For each anchor, 1-2 concrete examples of content that would qualify.
 
 Also produce:
-
-- A section on "criteria I considered but rejected", with reasons —
-  so I can see what tradeoffs the rubric is making.
-- A calibration check: for each of my 3 example outputs, predict
-  the score the rubric should give on each criterion. This lets me
-  spot immediately whether the rubric matches my priors or not.
+- Criteria you considered but rejected, and why.
+- A calibration check: for each of my example outputs, the score you'd
+  expect the rubric to give on each criterion, so I can see right away
+  whether the rubric agrees with my own judgment.
 ```
 
----
+## Anchors matter more than criteria
 
-## Why the anchors matter more than the criteria
+You can have a perfectly good criterion like "numerical accuracy" and still get useless scores if the levels are just "poor, ok, excellent." Here's the version I used in [activation-insight-agent](https://github.com/SourabhK7/activation-insight-agent/blob/main/evals/rubric.md):
 
-The failure mode I hit repeatedly when I first started writing eval rubrics: I'd write good criteria, then anchor them with adjectives, then act surprised when the judge couldn't discriminate. "Numerical accuracy" as a criterion is fine. "0 = poor, 1 = ok, 2 = excellent" is not.
+- 2: every number in the diagnosis is within 1 percentage point of ground truth, and nothing is made up.
+- 1: one number is off by 1 to 3 points, or one made-up number points the right way.
+- 0: two or more errors, any error over 3 points, or a made-up number that misstates the size of something.
 
-Rewrite the same criterion with behavioral anchors:
+Now the judge has to actually look at the numbers to score it, so scores repeat across runs, and when two judges disagree it tells you something.
 
-- **0** — Contains at least one numeric claim that does not appear in the input, OR restates a number with a different unit than the input specifies.
-- **1** — All numeric claims trace back to the input, but at least one is stated with less precision than the input provides (e.g., input says "34.2%", output says "about a third").
-- **2** — Every numeric claim in the output appears in the input at the same precision, and units are preserved.
+The calibration check at the end of the prompt is your safety net. If the rubric would score your "strong" example as mediocre, either the rubric measures the wrong thing or your own read is off. Better to find out before running the eval.
 
-Now the judge has to *look at the numbers* to score. The score becomes reproducible across runs, and disagreements between judges are diagnostic rather than random.
+## A lesson from running one
 
-The calibration check at the end of the prompt is the safety net. If the rubric predicts your "strong" example scores 1s across the board, your rubric is either measuring the wrong thing or your intuition is wrong. Either way, you find out before you run the eval, not after.
+A rubric is only as good as what the judge checks against. In the activation-insight-agent eval, the judge scored one version's numerical accuracy at 1.33 out of 2. When I recomputed every number it had marked down, they were all correct. The model had reported some rates (by signup week, by country) that weren't in the judge's ground-truth file, and the judge treated "not in my file" as "made up."
 
----
+If a criterion says "check against ground truth," the ground truth has to cover everything an output might reasonably say. Otherwise the judge reports failures that have nothing to do with correctness. Spot-check the low scores by hand before you believe them.
 
-## Example
+## Where it goes wrong
 
-**Feature**: A pandas + LLM agent that takes funnel event data and produces a written diagnosis of where users drop off. (See `activation-insight-agent` for the real implementation.)
+The rubric can be too easy. If any coherent output gets a 2, every criterion maxes out. Set the top level so a mediocre attempt would miss it.
 
-**Failure modes worried about**:
-- The LLM invents conversion rates not in the input
-- The LLM uses causal language ("mobile UI is broken") when the data only shows correlations
-- The LLM buries the biggest finding under generic commentary
+Judges have their own tastes. Even with good anchors, a judge model tends to prefer longer, more hedged, more structured answers. If you can, have a second model grade a sample and look at where they disagree. That's where the anchors need work.
 
-**Rubric that Claude drafted** (excerpt, criteria 1 and 3 of 6):
+Don't make the judge do arithmetic. If a criterion needs a calculation ("within 3 points of the true value"), the judge is as likely to get it wrong as the model being judged. Compute it in code and hand the judge the result.
 
-> **Criterion 1: Numerical grounding**
->
-> Measures whether every quantitative claim in the diagnosis traces back to the structured findings input.
->
-> - **0** — At least one numeric claim in the output does not appear in the input findings JSON, or a rate is stated with a wrong unit (e.g., "26% of users converted" when input says end_to_end_conversion is 0.26, but the diagnosis quotes it as "26 out of every 50").
-> - **1** — All numeric claims trace to the input, but at least one is rounded to a coarser precision than the input provides (e.g., input says 34.2%, output says "roughly a third"), OR one comparison is stated in a way that requires an implicit computation (e.g., "twice as high as" when the two numbers are actually 1.8x apart).
-> - **2** — Every numeric claim in the diagnosis appears in the input at the same precision. Ratios and comparisons are supported by numbers explicitly in the input.
->
-> **Criterion 3: Causal language discipline**
->
-> Measures whether the diagnosis uses causal language on observational funnel data (which cannot support causal claims).
->
-> - **0** — Uses "caused", "drove", "led to", "because of", "due to", or similar direct-causal verbs to describe why a segment behaves differently, without any hedging language nearby.
-> - **1** — Uses hedged causal language ("suggests", "consistent with", "coincides with", "likely reflects"), or mixes causal and correlational framings within the same paragraph.
-> - **2** — Consistently uses correlational language. Causal hypotheses are explicitly flagged as hypotheses. No direct-causal verbs applied to observational findings.
+Rubrics go stale. Once you improve the system, the 0-level failures stop happening and that criterion scores 2 every time. That means it stopped telling you anything. Retire it and add a harder one.
 
-**Calibration check**: On my "strong" example, Claude predicted (2, 2, 2, 1, 2, 2) — 11/12. My gut said the same output was a 12/12. The 1 was on criterion 4 (finding prioritization); Claude spotted a weaker headline than I'd noticed. That's the rubric working *as designed* — surfacing something I missed.
+## When not to bother
 
-**What I did with the rubric**: Ran it in `evals/run_eval.py` against 10 synthetic funnels, structured-findings arm vs. naive-baseline arm. Full write-up in the activation-insight-agent repo. The numerical grounding criterion turned out to be the least discriminating — Sonnet 5 didn't hallucinate numbers on either arm — which was itself a finding worth reporting.
-
----
-
-## Failure modes of this pattern
-
-**Judges can still cheat if the rubric is too easy.** If your "2" anchor is trivially met by any coherent output, the whole rubric ceilings. Aim for anchors where "2" requires the model to do something a mediocre attempt would miss.
-
-**Judges have their own priors.** Even with good anchors, a judge model prefers verbose outputs, prefers hedged language, prefers structure. Cross-validate with a second judge model (Haiku scoring alongside Sonnet, say) and look at criteria where they diverge — that's where the anchors need more work.
-
-**Anchors that require calculation.** If a criterion says "score 2 if the segment finding is within 3pp of the actual", the judge now has to do arithmetic to score it. Judges are as bad at arithmetic as the model being judged. Move computable checks *outside* the judge — pass them as pre-computed booleans in the input to the judge.
-
-**The rubric gets stale.** If you improve the underlying feature, the "0" anchors stop occurring. Everything scores 2 on that criterion. That's not a good thing — it means the rubric has lost signal. Retire criteria that stop discriminating and add harder ones.
-
-## When to skip
-
-- **You're evaluating a single output.** A rubric is overkill for one-shot analysis; just read it critically.
-- **You have ground-truth labels for the outputs.** If you can compare against a gold standard programmatically, skip the LLM judge and just measure agreement with the labels.
-- **The failure mode is a hard yes/no** (e.g., "the SQL runs without error"). Assert that in code, don't ask a judge.
+- You're looking at one output. Just read it carefully.
+- You have ground-truth labels. Measure agreement with the labels in code and skip the judge.
+- The thing you care about is pass/fail, like "the SQL runs." Check it in code.
 
 ## Related patterns
 
-- Pattern 03 (SQL self-review) — the same "second pass with a specific checklist" idea, applied to code instead of eval.
-- Pattern 05 (calibrated language) — much of criterion 3 ("causal language discipline") comes straight from calibrated language work.
-- Pattern 09 (pre-mortem) — write the rubric *before* running the eval, for the same reason you write a pre-mortem before running the analysis.
+- Pattern 03 (SQL self-review): the same idea of a second pass with a specific checklist, applied to code.
+- Pattern 05 (calibrated language): a good source for a "causal language" criterion.
+- Pattern 09 (pre-mortem): write the rubric before you run the eval, for the same reason you'd do a pre-mortem before an analysis.

@@ -1,27 +1,25 @@
-# Pattern 11 — Anomaly decomposition
+# Pattern 11: Anomaly decomposition
 
-**Problem this solves:** A metric moved. A PM Slacks you at 9am: "Signups dropped 12% yesterday, what happened?" You have maybe 45 minutes before someone senior asks the same question. You don't want to spend 40 of those minutes reading dashboards in the wrong order.
+A metric moved. A PM messages you at 9am: "Signups dropped 12% yesterday, what happened?" You have maybe 45 minutes before someone more senior asks the same thing, and you don't want to spend 40 of them clicking through dashboards in the wrong order.
 
-**The pattern:** Before running a single query, describe the anomaly to Claude and ask it to produce a *ranked decomposition tree* — the sequence of splits you should investigate, starting with the ones most likely to explain the movement and cheapest to check. This turns a fuzzy "why did it drop?" into a checklist you can burn through.
+Before running any query, describe the movement to Claude and ask for a ranked list of things to check, starting with the ones most likely to explain it and cheapest to look at. That turns a vague "why did it drop?" into a checklist.
 
-The key move is enforcing an ordering discipline that most DS learn painfully over years: **rule out instrumentation before behavior, rule out composition before behavior, and rule out one-day effects before trend changes.** Skipping any of these steps is how DS embarrass themselves with a 200-word Slack thread that gets contradicted by a data engineer an hour later.
+The main thing it enforces is an order most data scientists learn the hard way: rule out instrumentation before behavior, rule out changes in the mix of users before behavior, and rule out one-day blips before calling it a trend. Skip a step and you end up writing a long Slack thread that a data engineer contradicts an hour later.
 
----
-
-## The prompt template
+## The prompt
 
 ```
 A metric moved and I need to explain it. Before I start querying,
-help me produce a ranked decomposition tree — the sequence of splits
+help me produce a ranked decomposition tree: the sequence of splits
 I should investigate, ordered by (a) likelihood of explaining the
 movement, and (b) cost to check.
 
 THE MOVEMENT:
 - Metric: {name and precise definition}
-- Direction and magnitude: {"+12%" or "-3.4pp" — be precise about
+- Direction and magnitude: {"+12%" or "-3.4pp", and be precise about
   relative vs absolute}
-- Time window: {e.g., "yesterday vs the trailing 7-day median" —
-  and how confident I am the movement is real, not noise}
+- Time window: {e.g., "yesterday vs the trailing 7-day median", and
+  how confident I am the movement is real, not noise}
 - Business surface: {which product, geo, platform, segment}
 
 WHAT I ALREADY KNOW:
@@ -31,23 +29,23 @@ WHAT I ALREADY KNOW:
 
 PRODUCE A DECOMPOSITION TREE, ORDERED:
 
-Level 1 — Instrumentation checks (rule out before anything else):
+Level 1, instrumentation checks (rule out before anything else):
   - Did the event schema, filter logic, or data pipeline change?
   - Is the data complete for the affected window (late-arriving data,
     partial partitions)?
   - Are we comparing like-for-like across the pre/post window
     (timezone boundaries, DST, weekday alignment)?
 
-Level 2 — Composition shifts (rule out before behavioral explanations):
+Level 2, composition shifts (rule out before behavioral explanations):
   - Did the mix of users, geos, platforms, or acquisition sources
     change? A behavior that looks new might just be the same behavior
     from a different-shaped population.
 
-Level 3 — Real behavioral / product changes:
+Level 3, real behavioral / product changes:
   - Only after 1 and 2 are ruled out, consider actual changes in
     user behavior, feature rollouts, pricing changes, marketing pulses.
 
-Level 4 — External:
+Level 4, external:
   - Holidays, competitor actions, macro events, outages upstream.
 
 For each candidate: give me (a) the specific SQL-shaped question
@@ -59,72 +57,66 @@ or joined dataset).
 Rank the checks so I do the cheapest high-likelihood ones first.
 ```
 
----
+## Why the order matters
 
-## Why the ordering matters
+A lot of data scientists have a story about writing a careful explanation for why activation dropped 8%, only to have someone point out that the event pipeline was missing data because one Kafka partition was lagging. The explanation was a thoughtful theory about seasonal churn. The real answer was "logging is broken, wait for the backfill." The level 1 checks catch that in two minutes.
 
-Every experienced product DS has a story about the time they wrote a beautiful narrative explaining why activation dropped 8%, only for someone to point out that the event pipeline had partial data because a Kafka topic partition was lagging. The narrative was Simpson's paradox-worthy prose about seasonal churn. The actual answer was "logging is broken, wait for the backfill."
+Level 2 catches the "our Brazil traffic doubled overnight from a marketing push, Brazil converts lower, so the overall rate fell even though nothing changed for any individual user" situation. It's one of the most common false alarms in product analytics, and it's easier to check than people think: just compare the user mix before and after.
 
-Level 1 (instrumentation) catches this in 2 minutes.
-
-Similarly: level 2 (composition) catches the "our Brazilian traffic doubled overnight because of a marketing push, and Brazil has lower activation, so the aggregate rate looks worse but nothing changed for individual users" scenario. This is one of the most common false alarms in product DS, and it's easier to check than most people realize (a simple pre/post user-mix diff).
-
-By the time you're at level 3, you've earned the right to talk about actual behavior. But most people start there, then walk it back embarrassingly.
+Once you're at level 3, you've earned the right to talk about behavior. Most people start there and then have to walk it back.
 
 ## Example
 
-**Movement**: US-only signup rate on the marketing site dropped from a trailing-7-day median of 3.4% to 2.9% yesterday. That's a -14.7% relative drop, or -0.5pp absolute.
+The movement: US signup rate on the marketing site went from a trailing 7-day median of 3.4% to 2.9% yesterday. That's -14.7% relative, or -0.5pp absolute.
 
-**What I know**: There was a marketing site redesign shipped two days ago (front-page hero replaced). No known outages. Traffic volume roughly flat.
+What I know: the marketing site was redesigned two days ago (new front-page hero). No known outages. Traffic is roughly flat.
 
-**Claude's decomposition tree** (abbreviated):
+Claude's tree (shortened):
 
-> **Level 1 — Instrumentation (do these first, ~10 minutes total)**
+> **Level 1: Instrumentation (do these first, ~10 minutes total)**
 >
-> 1a. **Redesign event schema change** — cheap. When the hero changed, did the click event on the primary CTA change name, DOM selector, or tracking parameters? If yes, the "signup started" event you're counting might be missing a fraction of clicks. *Check*: compare event volume for the CTA event vs. server-side signup form loads. If server-side loads look normal but client-side clicks look low, it's instrumentation.
+> 1a. **Redesign event schema change** (cheap). When the hero changed, did the click event on the primary CTA change name, DOM selector, or tracking parameters? If yes, the "signup started" event you're counting might be missing a fraction of clicks. *Check*: compare event volume for the CTA event vs. server-side signup form loads. If server-side loads look normal but client-side clicks look low, it's instrumentation.
 >
-> 1b. **Late-arriving data** — cheap. What was the cutoff time for "yesterday" in your query? If it was midnight UTC but signups have a 3-hour delay pipeline for US traffic, you may be missing the last few hours of US signups. *Check*: rerun the query with the same window but at T+24 hours to see if the number changes.
+> 1b. **Late-arriving data** (cheap). What was the cutoff time for "yesterday" in your query? If it was midnight UTC but signups have a 3-hour delay pipeline for US traffic, you may be missing the last few hours of US signups. *Check*: rerun the query with the same window but at T+24 hours to see if the number changes.
 >
-> 1c. **Timezone comparison** — cheap. Is "yesterday" the same weekday-of-month as the days in your trailing-7-day median? If yesterday was a US federal holiday and none of the comparison days were, you're comparing a holiday to non-holidays.
+> 1c. **Timezone comparison** (cheap). Is "yesterday" the same weekday-of-month as the days in your trailing-7-day median? If yesterday was a US federal holiday and none of the comparison days were, you're comparing a holiday to non-holidays.
 >
-> **Level 2 — Composition (~15 minutes)**
+> **Level 2: Composition (~15 minutes)**
 >
-> 2a. **Traffic source mix** — medium. Did the mix of paid/organic/referral traffic shift? Paid traffic typically has different signup conversion than organic. If paid dropped and organic held, the aggregate rate would fall without any per-source behavior change. *Check*: compute signup rate per source_medium for the two windows. If per-source rates are flat but the mix shifted, it's composition, not behavior.
+> 2a. **Traffic source mix** (medium). Did the mix of paid/organic/referral traffic shift? Paid traffic typically has different signup conversion than organic. If paid dropped and organic held, the aggregate rate would fall without any per-source behavior change. *Check*: compute signup rate per source_medium for the two windows. If per-source rates are flat but the mix shifted, it's composition, not behavior.
 >
-> 2b. **Device / platform mix** — medium. The redesign may have differentially affected mobile vs. desktop. If mobile suddenly dominates traffic and mobile has lower conversion, aggregate drops.
+> 2b. **Device / platform mix** (medium). The redesign may have affected mobile and desktop differently. If mobile suddenly dominates traffic and mobile has lower conversion, the aggregate drops.
 >
-> **Level 3 — Behavioral / product (~30+ minutes, only if 1 and 2 clean)**
+> **Level 3: Behavioral / product (~30+ minutes, only if 1 and 2 are clean)**
 >
-> 3a. **Redesign impact per source** — expensive. If per-source signup rates all dropped after the redesign shipped, that's a real behavioral effect from the redesign. Segment by acquisition source to see if the drop is broad or localized.
+> 3a. **Redesign impact per source** (expensive). If per-source signup rates all dropped after the redesign shipped, that's a real behavioral effect from the redesign. Segment by acquisition source to see if the drop is broad or localized.
 >
-> 3b. **Funnel step diagnostics** — expensive. Where in the signup funnel do users drop? If they never reach the form (bounce rate up on landing), it's a landing-page problem. If they load the form but don't submit, it's a form problem.
+> 3b. **Funnel step diagnostics** (expensive). Where in the signup funnel do users drop? If they never reach the form (bounce rate up on landing), it's a landing-page problem. If they load the form but don't submit, it's a form problem.
 >
-> **Level 4 — External**
+> **Level 4: External**
 >
-> 4a. **Competitor launch or news event** — cheap-ish. Any large competitor announcement yesterday? Any negative press about your product?
+> 4a. **Competitor launch or news event** (fairly cheap). Any large competitor announcement yesterday? Any negative press about your product?
 
-**What I actually found running this**: check 1b caught it. The pipeline had a 4-hour lag on yesterday's data. The corrected number was 3.3%, not 2.9%. The "anomaly" was 40 minutes of a real dip (probably noise) and 3+ hours of missing data.
+What it turned out to be: check 1b. The pipeline had a 4-hour lag on yesterday's data, and the corrected number was 3.3%, not 2.9%. The "anomaly" was about 40 minutes of a real dip, probably noise, plus three-plus hours of missing data.
 
-Total investigation time: 12 minutes. Total time saved vs. the alternative universe where I wrote a redesign-critique memo before checking instrumentation: probably 90 minutes plus embarrassment.
+That took 12 minutes. The alternative, writing up a critique of the redesign before checking the pipeline, would have taken an hour and a half and ended badly.
 
----
+## Where it goes wrong
 
-## Failure modes
+It suggests more checks than you need. The value is the order, not the full list. Do the cheap, likely ones and stop once you have an explanation that fits the size of the movement.
 
-**Claude will suggest more checks than you need.** The value is the *ordering*, not the exhaustive list. Do the cheap high-likelihood ones and stop as soon as you have an explanation that fits the magnitude.
+It doesn't know your product's known problems. If you have an event that breaks regularly, Claude can't guess that. Put it in the "what I already know" section and it'll factor it into the ranking.
 
-**Claude does not know your specific product's known issues.** If you have a chronically flaky event, Claude won't guess that. Feed known-issues context in the "WHAT I ALREADY KNOW" section — it'll incorporate it into the ranking.
+Watch out for accepting the fifth explanation just because you're tired of ruling things out. Check whether the explanation is big enough. A mix shift worth 0.05pp doesn't explain a 0.5pp drop.
 
-**Watch for the "explanation exhaustion" trap.** After ruling out 4 things, there's a strong temptation to accept the 5th as the explanation just to stop looking. Discipline: does the magnitude of the candidate explanation actually match the magnitude of the anomaly? A composition shift that accounts for 0.05pp doesn't explain a 0.5pp drop.
+## When not to bother
 
-## When to skip
-
-- Anomalies inside noise. If yesterday's number is within the historical daily variance, don't investigate — you'll manufacture explanations for randomness. Compute a rough control chart before opening this pattern.
-- Metrics that move for known reasons (post-launch spikes, planned pulses, expected seasonality).
-- When the answer is already obvious. If eng shipped a broken deploy that reverted at 6pm, the tree is not necessary; the incident is the explanation.
+- Movements within normal noise. If yesterday is inside the usual day-to-day range, don't investigate, or you'll invent explanations for randomness. Put together a rough control chart before you reach for this.
+- Movements with known causes: post-launch spikes, planned campaigns, expected seasonality.
+- When the answer is already obvious. If engineering shipped a broken deploy and rolled it back at 6pm, that's your explanation.
 
 ## Related patterns
 
-- Pattern 03 (SQL self-review) — apply to each query the tree generates, especially the level-1 instrumentation checks where a subtle join can invert the answer.
-- Pattern 10 (metric interpretation) — use *before* declaring an anomaly. Sometimes the "movement" is just a definition mismatch across time.
-- Pattern 08 (Slack-ready) — for the summary post you'll send once you find the answer. Format the explanation as: what moved, what caused it, what to do about it.
+- Pattern 03 (SQL self-review): use it on each query the tree suggests, especially the level 1 checks, where one bad join can flip the answer.
+- Pattern 10 (metric sanity check): use it before calling something an anomaly. Sometimes the "movement" is just a definition that changed over time.
+- Pattern 08 (Slack-ready): for the message you send once you know the answer. Say what moved, why, and what to do about it.

@@ -1,41 +1,33 @@
-# Example: anomaly decomposition using pattern 11
+# Example: anomaly decomposition with pattern 11
 
-A worked example of using pattern 11 on a realistic (but fabricated) product anomaly. Shows the full raw prompt input, Claude's ranked decomposition tree, and the abbreviated real-work path taken through it.
-
----
+A worked example of pattern 11 on a realistic but made-up product anomaly: the prompt input, Claude's ranked list of checks, and the shortened path through it.
 
 ## The situation
 
-A product DS on a B2B activation team. It's Tuesday morning. Slack from the PM at 8:47am:
+A data scientist on a B2B activation team. Tuesday morning, 8:47am, a Slack from the PM:
 
-> "Hey — is trial-to-paid conversion actually down? Dashboard says 6.1% last week vs. 7.8% the prior week. Kind of alarming if real. Can you dig in before standup at 10?"
+> "Hey, is trial-to-paid conversion actually down? Dashboard says 6.1% last week vs. 7.8% the prior week. Kind of alarming if real. Can you dig in before standup at 10?"
 
-72 minutes to answer. The dashboard shows the number the PM quoted. The metric is the standard weekly one.
+That's 72 minutes. The dashboard does show what the PM quoted, and it's the standard weekly metric.
 
----
+## Step 1: pin down what moved, before any SQL
 
-## Step 1: Frame the movement precisely (before touching SQL)
+Five minutes making sure of what actually changed:
 
-Before running pattern 11, the DS spends 5 minutes making sure they understand what moved:
+- Metric: 14-day trial-to-paid conversion. Users who started a trial in the week and paid within 14 days of starting, divided by everyone who started a trial that week.
+- Movement: 7.8% to 6.1%, about 22% down relative, or 1.7 points absolute.
+- Windows: "last week" is Mon 2026-06-02 to Sun 2026-06-08, and "prior week" is Mon 2026-05-26 to Sun 2026-06-01.
+- Is it real? 22% is far outside the usual week-to-week noise for this metric (standard deviation around 0.4 points). If it's real, it matters.
 
-- **Metric**: 14-day trial-to-paid conversion rate, defined as: users who started a trial in the reference week AND paid within 14 days of trial start / all users who started a trial in the reference week.
-- **Movement**: 7.8% → 6.1%, a relative drop of ~22%, or -1.7pp absolute.
-- **Windows**: "Last week" = Mon 2026-06-02 through Sun 2026-06-08. "Prior week" = Mon 2026-05-26 through Sun 2026-06-01.
-- **Confidence it's real**: 22% is well outside typical weekly variance for this metric (historical stdev ≈ ±0.4pp week-over-week). If real, the effect is meaningful, not noise.
+Just writing that down catches something. Last week ended Sunday June 8, three days ago, so the 14-day payment window hasn't closed for most of that week's trials. Someone who started a trial on June 8 has until June 22 to pay.
 
-This framing itself catches one thing: the reference week ended Sunday 2026-06-08 — which was **3 days ago**. The 14-day payment window hasn't fully closed for most of that cohort's users. Users who started a trial on Sunday June 8 have until June 22 to pay.
+Note it and keep going.
 
-Flag this and continue.
-
----
-
-## Step 2: Feed pattern 11 with real context
-
-Raw prompt input to Claude:
+## Step 2: the prompt, with real context
 
 ```
 A metric moved and I need to explain it. Before I start querying,
-help me produce a ranked decomposition tree — the sequence of splits
+help me produce a ranked decomposition tree: the sequence of splits
 I should investigate, ordered by (a) likelihood of explaining the
 movement, and (b) cost to check.
 
@@ -44,7 +36,7 @@ THE MOVEMENT:
   of trial start / all trial starts, weekly cohort)
 - Direction and magnitude: 7.8% → 6.1%, -22% relative, -1.7pp absolute
 - Time window: last week (Mon 6/2 to Sun 6/8) vs. prior week (Mon 5/26
-  to Sun 6/1). Historical weekly stdev ≈ 0.4pp — the movement is well
+  to Sun 6/1). Historical weekly stdev ≈ 0.4pp, so the movement is well
   outside typical noise.
 - Business surface: B2B trial funnel, all geos, all plan tiers.
 
@@ -61,11 +53,9 @@ WHAT I ALREADY KNOW:
 Produce the tree.
 ```
 
----
+## Step 3: Claude's list of checks
 
-## Step 3: Claude's decomposition tree
-
-Abbreviated. Only the checks the DS actually acted on are shown in full.
+Shortened. Only the checks that got acted on are shown in full.
 
 > **Level 1 — Instrumentation (do these first)**
 >
@@ -89,67 +79,46 @@ Abbreviated. Only the checks the DS actually acted on are shown in full.
 >
 > **4a. Broader macro — end-of-quarter B2B budget dynamics.** June is end of Q2 for many B2B buyers, which can create both push (spend before quarter closes) and pull (delay to Q3). Directionally, this can go either way for trial-to-paid conversion. Low prior, hard to check.
 
----
+## Step 4: what actually got checked
 
-## Step 4: What the DS actually did
+Following that order, three queries in the next 25 minutes.
 
-Following the ordering, the DS ran three queries in the next 25 minutes:
+First, check 1a, the payment window. Restricting both weeks to trials that started at least 14 days ago, so every payment window is closed:
 
-**Query 1 (check 1a) — right-censoring.**
+- Prior week (5/26 to 6/1), fully closed: 7.9%. The original said 7.8%; the small change is late-arriving data, which is expected.
+- Last week (6/2 to 6/8): only 6/2 has a closed window. 6/3 to 6/8 are still open.
 
-Restricted both windows to only trials that started ≥14 days before today, so all payment windows are closed.
+So that restriction alone can't compare the two, since last week has almost no closed days. Instead, compare both weeks at the same age: what share had converted by day 5 after starting the trial?
 
-Result:
-- Prior week (5/26 to 6/1), fully closed: **7.9%** (was 7.8% in the original — small revision from late-arriving data, expected).
-- Reference week (6/2 to 6/8), only 6/2 has a fully closed window; 6/3-6/8 are partially open.
+- Prior week at day 5: 4.1%
+- Last week at day 5: 4.0%
 
-Cannot directly compare on this restriction alone — the reference-week cohort has almost no closed sub-cohorts. Instead: build a "days-since-trial-start" cumulative conversion curve. At day 5 post-trial-start, what fraction has converted?
+At the same age they're basically identical. Most of the "drop" is last week's trials not having had time to convert yet.
 
-- Prior week at day-5-since-trial: 4.1%
-- Reference week at day-5-since-trial: 4.0%
+You could stop there, but the marketing tail was worth confirming.
 
-**Essentially identical at the same maturity.** The apparent drop is dominated by the reference-week cohort being newer and not having had time to convert yet.
+Second, check 1b, the Stripe incident. Stripe shows 174 payments on 6/3, and the warehouse has 174. Fine.
 
-At this point the DS could stop, but continues one more check because the marketing-pulse effect is worth confirming for completeness.
+Third, check 2a, the source mix. Paid-acquired share of trial starts was 34% the prior week and 21% last week. The tail of the mid-May campaign had been inflating the share of paid trials the week before. That mix change explains a small leftover part of the drop even after adjusting for trial age, and it's a return to normal, not a decline.
 
-**Query 2 (check 1b) — Stripe webhook incident.**
+## Step 5: the reply
 
-Payment counts from Stripe source-of-truth on 6/3 = 174. Warehouse count = 174. Fine.
+Posted at 9:33am, 46 minutes after the PM's message:
 
-**Query 3 (check 2a) — source mix.**
-
-Paid-acquired share of trial starts:
-- Prior week: 34%
-- Reference week: 21%
-
-Confirms the tail of the mid-May marketing pulse was inflating paid-acquired trial share the week before. The mix shift explains a small residual portion of the drop even after adjusting for maturity — but the mix shift is a *return to normal*, not a degradation.
-
----
-
-## Step 5: The Slack reply
-
-Post to the PM at 9:33am, 46 minutes after the original message:
-
-> Short answer: **the drop is not real. It's mostly cohort maturity plus a return-to-normal in traffic mix.**
+> Short answer: the drop isn't real. It's mostly last week's trials being too new, plus traffic mix going back to normal.
 >
-> Details:
+> The 14-day payment window hasn't closed for most of last week's trials. Comparing both weeks at the same age (day 5 after trial start), conversion is basically the same, 4.1% vs 4.0%.
 >
-> 1. **Cohort maturity dominates the apparent drop.** The 14-day payment window hasn't closed for most of last week's trials. When we compare cohorts at the same days-since-trial-start (e.g., day 5), conversion is essentially identical (4.1% vs. 4.0%).
+> The rest is the mid-May paid campaign winding down. Paid trials went from 34% to 21% of starts week over week. Conversion within each source is stable.
 >
-> 2. **Marketing tail explains a small residual.** Paid-acquired share of trial starts fell from 34% to 21% week-over-week as the mid-May pulse fully wound down. This mix shift accounts for a small portion of the aggregate change. Per-source conversion rates are stable.
+> Stripe and the warehouse match for 6/3, so the webhook alert didn't lose anything.
 >
-> 3. **Stripe/warehouse reconciliation is clean** for the 6/3 window despite the earlier webhook alert.
->
-> Recommendation: don't act on the raw weekly number. Add a "closed-window only" version of this metric to the dashboard so we stop getting false alarms from cohort maturity. Happy to build it this sprint.
->
-> Will reshare the 6/2-6/8 conversion number in ~10 days when the window closes.
+> I wouldn't act on the raw weekly number. I'd like to add a closed-window version of this metric to the dashboard so maturity stops setting off false alarms, and I can build it this sprint. I'll reshare the 6/2 to 6/8 number in about 10 days once the window closes.
 
-Total time: 46 minutes. Half of it framing and reading. About 20 minutes of actual SQL.
+Total time: 46 minutes, about half of it framing and reading and about 20 minutes of SQL.
 
----
+## What the pattern saved
 
-## What this pattern saved
+The obvious path, "conversion is down, let me look at the funnel steps," would have burned an hour on behavioral analysis before anyone noticed the trial-age problem. That's exactly what pattern 11 is for: checking the structure before talking about behavior.
 
-The naive path here — start with "conversion is down, let me look at funnel steps" — would have burned an hour on level-3 behavioral analysis before catching the level-1 cohort-maturity issue. That's exactly the failure mode pattern 11 exists to prevent: talking about behavior before ruling out structure.
-
-The prompt itself doesn't do the analysis. It enforces the ordering discipline. In a low-adrenaline moment you might remember to check maturity first; at 8:47am with a PM waiting, the discipline is a lifesaver.
+The prompt doesn't do the analysis. It just keeps the order straight. On a quiet afternoon you might remember to check trial age first anyway. At 8:47am with a PM waiting, having the order written down helps a lot.

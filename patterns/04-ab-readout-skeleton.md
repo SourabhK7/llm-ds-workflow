@@ -1,16 +1,14 @@
-# Pattern 04 — Experiment readout skeleton
+# Pattern 04: Experiment readout skeleton
 
-**Problem this solves:** Writing an A/B test readout from scratch eats 60-90 minutes, mostly on structure and transitions. The analysis itself is usually 15 minutes of thinking. This pattern gets the structure drafted in under a minute so you can spend your time on the interpretation.
+Writing an A/B test readout from scratch takes 60 to 90 minutes, and most of that goes into structure and transitions. The actual thinking is maybe 15 minutes. This gets the structure drafted in under a minute so the time goes into interpretation.
 
-**The pattern:** Feed Claude the raw experiment metadata and top-line numbers, and have it produce a skeleton readout in a structure you've pre-specified. You then fill in the interpretation.
+Give Claude the experiment details and top-line numbers, have it fill in a structure you've already decided on, and then write the interpretation yourself.
 
----
-
-## The prompt template
+## The prompt
 
 ```
 Draft an A/B test readout using the structure below. Write in paragraphs,
-not bullets. Be calibrated — do not claim causality beyond what the data
+not bullets. Be calibrated: do not claim causality beyond what the data
 supports. Where the data is ambiguous, say so explicitly rather than
 smoothing it over.
 
@@ -52,40 +50,41 @@ Do not invent numbers. If a section has no data provided, write
 "[placeholder: need to fill in]" rather than guessing.
 ```
 
-## Why this structure
+## Why this order
 
-Each section exists because experienced readers look for it:
+Each section is there because people reading readouts look for it.
 
-- **TL;DR first** — exec readers stop here 80% of the time. Put the decision at the top.
-- **"What we tested"** before "what we found" — frames the result in context. Readers who missed the pre-reg need this.
-- **Guardrails as their own section** — not a footnote. Secondary metrics moving in unexpected directions is often the most interesting part of an experiment.
-- **Segments/heterogeneity** — average treatment effects lie. Explicit heterogeneity analysis separates adequate from good readouts.
-- **Caveats as their own section** — if caveats are sprinkled through the results, readers miss them. Grouping them forces the writer to acknowledge limitations explicitly.
-- **Recommendation last** — logical conclusion, not a forced summary.
+The TL;DR goes first because most exec readers stop there, so the decision should be at the top. "What we tested" comes before "what we found" so the result has context, which matters for anyone who missed the original plan.
 
-## What Claude is good at here
+Guardrails get their own section rather than a footnote. A secondary metric moving the wrong way is often the most interesting thing in the whole test.
 
-- Producing clean, readable prose for sections 2, 3, and 6. These are mostly restatement and framing work.
-- Catching internal inconsistencies (e.g., a TL;DR that says "ship" while the caveats say "underpowered").
-- Suggesting caveats you might have missed (section 7).
+Segments get their own section because an average effect can hide a lot. Looking at where the effect actually landed is what separates an okay readout from a good one.
 
-## What Claude is bad at here
+Caveats get their own section too. Scattered through the results, people skip them. Grouped together, the writer has to actually own the limitations.
 
-- Deciding ship vs. don't ship. It will default to ship if anything is positive, or hedge endlessly if anything is mixed. **You decide; the LLM drafts the language around your decision.**
-- Weighing guardrail trade-offs against primary metric lift. This is judgment.
-- Knowing your org's bar for shipping (some orgs ship anything non-negative; others require a clear lift + no guardrail deterioration).
+The recommendation goes last, as the conclusion the rest leads to.
+
+## What Claude does well here
+
+- Clean prose for sections 2, 3 and 6, which are mostly restating and framing.
+- Noticing contradictions, like a TL;DR that says ship while the caveats say the test was underpowered.
+- Suggesting caveats you forgot (section 7).
+
+## What it doesn't do well
+
+- Deciding whether to ship. It leans toward "ship" if anything is positive, or hedges forever if the results are mixed. You make the call, and it writes around your decision.
+- Weighing a guardrail hit against a lift on the primary metric. That's judgment.
+- Knowing your org's bar. Some teams ship anything that isn't negative, others want a clear lift and no guardrail damage.
 
 ## Example
 
-Full input/output example in [examples/ab-readout-example.md](../examples/ab-readout-example.md).
+There's a full input and output in [examples/ab-readout-example.md](../examples/ab-readout-example.md).
 
----
+## Where it goes wrong
 
-## Failure mode
+Give it marginal or null results and it reaches for language that suggests more signal than there is ("suggests a potential trend toward..."). Pattern 05 is a second prompt for stripping that out. For any test where the main result isn't significant or is close to zero, I run 04 and then 05.
 
-If you give Claude marginal or null results, it tends to reach for language that implies more signal than the data supports ("suggests a potential trend toward..."). Pattern 05 (calibrated language pass) is specifically a second prompt to strip this out. In practice, I run 04 then 05 for any experiment where the primary result is non-significant or close to null.
+## When not to bother
 
-## When to skip
-
-- Experiments with a clear dominant outcome (e.g., p < 0.001, 10% lift on primary metric, no guardrail issues). You can write these in 15 minutes without a skeleton.
-- Exploratory analyses that aren't real A/B tests. Use a different structure.
+- Tests with an obvious result (say p < 0.001, a 10% lift on the primary metric, no guardrail problems). Those take 15 minutes to write without help.
+- Exploratory analyses that aren't real A/B tests. They need a different structure.

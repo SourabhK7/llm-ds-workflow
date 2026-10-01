@@ -1,5 +1,5 @@
 Draft an A/B test readout using the structure below. Write in paragraphs, not
-bullets. Be calibrated — do not claim causality beyond what the data supports.
+bullets. Be calibrated: do not claim causality beyond what the data supports.
 Where the data is ambiguous, say so explicitly rather than smoothing it over.
 
 EXPERIMENT METADATA:

@@ -1,12 +1,10 @@
-# Pattern 07 — Exec TL;DR compression
+# Pattern 07: Exec TL;DR
 
-**Problem this solves:** You have a 3-page analysis doc. An exec needs a 3-bullet summary. Done naively, the summary drops the caveats that make the analysis credible. This pattern produces a TL;DR that is genuinely short *and* preserves the load-bearing uncertainty.
+You have a three-page analysis and an exec who needs three bullets. Shorten it the obvious way and the caveats that make the analysis believable are the first thing to go. This gets you a TL;DR that's actually short and still keeps the uncertainty that matters.
 
-**The pattern:** Give Claude the full analysis and ask for a compressed summary with explicit instructions about which kinds of caveats to preserve vs. drop.
+Give Claude the full analysis and tell it exactly which kind of caveat to keep.
 
----
-
-## The prompt template
+## The prompt
 
 ```
 Below is an analysis doc. Compress it to a 3-bullet executive TL;DR
@@ -16,7 +14,7 @@ ANALYSIS:
 {paste the full analysis}
 
 AUDIENCE:
-{who is reading this — VP? Director? CEO? — and what decision are they
+{who is reading this (VP? Director? CEO?) and what decision are they
 making from it}
 
 RULES:
@@ -39,44 +37,42 @@ After the TL;DR, list the caveats you chose NOT to include, and why. I
 want to see what you filtered out so I can check your judgment.
 
 Keep bullets to one sentence each. Do not use sub-bullets. Do not hedge
-individual words ("potentially", "may suggest") — if something is uncertain,
+individual words ("potentially", "may suggest"). If something is uncertain,
 the single-caveat bullet is where it goes, not sprinkled through the others.
 ```
 
-## Why "the single most important caveat" is the key move
+## Why exactly one caveat
 
-The default behavior of compression is to drop *all* caveats, because caveats are the longest and most skippable sentences. But the value of DS analysis *is* the caveats. The work of a good DS TL;DR is picking the one caveat that determines whether the decision changes.
+When you compress, caveats go first, because they're the longest sentences and the easiest to skip. But in DS work the caveats are often the whole point. A good TL;DR picks the one caveat that would change the decision.
 
-Forcing Claude to pick exactly one caveat rather than list "key caveats" is what makes this pattern work. It's also a useful prompt for the DS — if you can't pick which caveat is most important, you probably haven't synthesized the analysis enough.
+Making Claude choose a single caveat, instead of listing "key caveats," is what makes this work. It's a useful test for you too. If you can't say which caveat matters most, you probably haven't finished thinking through the analysis.
 
-## Why the "caveats you filtered out" section matters
+## Why ask what it left out
 
-This is the audit trail. You skim it and occasionally find Claude filtered out something that actually was load-bearing. Then you swap it in. Without the audit list, you'd have to re-read the full doc to check.
+That list is how you check its judgment. You skim it, and every so often it dropped something that actually mattered, so you swap it in. Without the list you'd have to reread the whole doc to check.
 
 ## Example
 
-**Full analysis**: a 2-page doc on why pricing page conversion dropped 8% week-over-week.
+The analysis: a two-page doc on why pricing page conversion dropped 8% week over week.
 
-**Claude's TL;DR**:
+Claude's TL;DR:
 > - Conversion dropped 8% WoW on the pricing page, driven almost entirely by a drop in mobile Safari traffic converting at half their usual rate.
 > - This coincides with a Safari browser update on April 8 that changed how our cookie consent banner renders; the effect looks like a bug, not a real demand shift.
 > - Recommend: pause the week-over-week comparison until Eng confirms whether the banner bug is fixed; treat the drop as measurement artifact unless the pattern persists after fix.
 
-**Caveats filtered out, with reasoning**:
-- "Small sample size in iOS Safari segment for the WoW comparison" — filtered because the pattern is consistent across days within the segment, so sample size isn't the main concern.
-- "Holiday week may affect baseline" — filtered because we controlled for day-of-week and the drop is specific to a browser/OS cell.
-- "Pricing page A/B test launched same week" — filtered because the test was holdout-only and doesn't affect the measurement period.
+What it left out, and why:
+- "Small sample size in iOS Safari segment for the WoW comparison": left out because the pattern holds day by day within the segment, so sample size isn't the main worry.
+- "Holiday week may affect baseline": left out because day of week was controlled for and the drop is specific to one browser and OS.
+- "Pricing page A/B test launched same week": left out because the test was holdout-only and doesn't touch the measurement period.
 
-I skim that list, agree with the filtering, and ship the TL;DR.
+I skimmed that, agreed with it, and sent the TL;DR.
 
----
+## Where it goes wrong
 
-## Failure modes
+- It sometimes drops the number, leaving "conversion dropped significantly" instead of "dropped 8%." Check that the headline has the magnitude.
+- It sometimes softens the recommendation to "consider pausing" when the analysis supports "pause." If the doc backs a clear call, the TL;DR should make it.
 
-- **Claude sometimes compresses away the magnitude**, leaving you with "conversion dropped significantly" instead of "dropped 8%". Numbers matter; check that the headline has them.
-- **Claude sometimes softens the recommendation.** "Consider pausing" instead of "pause". If the full analysis supports a clear recommendation, the TL;DR should carry it.
+## When not to bother
 
-## When to skip
-
-- Analyses where you're the exec and you wrote it; you already know what to emphasize.
-- Analyses short enough that there's nothing to compress (< 1 page).
+- You're the exec and you wrote it, so you already know what to emphasize.
+- The analysis is under a page and there's nothing to compress.

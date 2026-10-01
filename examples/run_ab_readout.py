@@ -1,8 +1,8 @@
 """
 End-to-end demo of pattern 04 (A/B readout skeleton) using the llm_ds_workflow
 library. Takes a realistic (but fabricated) experiment result, renders the
-ab-readout template, prints the filled prompt, and — if ANTHROPIC_API_KEY is
-set — calls Claude to actually produce the readout.
+ab-readout template, prints the filled prompt, and, if ANTHROPIC_API_KEY is
+set, calls Claude to actually produce the readout.
 
 Run:
     python examples/run_ab_readout.py             # just render, no API call
@@ -25,7 +25,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from llm_ds_workflow import render  # noqa: E402
 
-
 # Fabricated experiment result. Realistic-shaped: well-powered primary metric,
 # clean guardrails, mildly divergent segments. Real experiment data would come
 # from your A/B testing platform's API or a warehouse query.
@@ -40,13 +39,13 @@ EXPERIMENT = {
     "end": "2026-06-16",
     "N": "14",
     "metric, definition": (
-        "Day 1 activation rate — fraction of new signups who complete a first "
+        "Day 1 activation rate: fraction of new signups who complete a first "
         "meaningful in-app action within 24h of signup"
     ),
     "list": "Day 7 retention, support contact rate (first 7 days)",
     "user / session / device": "user_id (at signup)",
     "mean, N, confidence interval": (
-        # Filled with a compact one-liner covering both arms — the template
+        # Filled with a compact one-liner covering both arms; the template
         # expects "Control:" and "Treatment:" lines; we render one shared
         # summary and let the LLM narrate. (The template is flexible about
         # exact number formatting.)
@@ -60,7 +59,7 @@ EXPERIMENT = {
     "metric 2": "Support contact rate: 4.2% control vs 4.5% treatment, p=0.48 (not significant)",
     "segment": (
         "US +8.1% (p=0.008), UK +7.8% (p=0.03), CA +6.9% (p=0.19, underpowered), "
-        "AU +4.2% (p=0.41, underpowered) — effect directionally positive in all four"
+        "AU +4.2% (p=0.41, underpowered). Effect directionally positive in all four"
     ),
     "result": "see segment breakdown above",
 }

@@ -1,12 +1,10 @@
-# Pattern 03 — SQL self-review
+# Pattern 03: SQL self-review
 
-**Problem this solves:** LLM-generated SQL has a specific failure profile. It's usually syntactically fine and semantically close, but subtly wrong in ways you catch only by running it against real data — by which point you've already wasted a warehouse query. This pattern is a second-pass prompt that catches the specific errors LLMs make.
+SQL written by an LLM fails in a particular way. It's usually valid and close to right, but subtly wrong in ways you only notice after running it on real data, and by then you've already spent a warehouse query. This is a second pass aimed at those specific mistakes.
 
-**The pattern:** After Claude writes a query, hand it back to Claude with a targeted checklist of "things LLMs get wrong in SQL" and ask for a review.
+After Claude writes a query, give it back with a checklist of things LLMs commonly get wrong in SQL, and ask it to review against that list.
 
----
-
-## The prompt template
+## The prompt
 
 ```
 Here is a SQL query I'm about to run on a production warehouse:
@@ -37,26 +35,26 @@ common in LLM-written SQL:
    same action, same timestamp), how are those being handled?
 
 For each issue you find, describe it concretely and suggest a fix.
-If a check passes, say so briefly — I want to see you considered it.
+If a check passes, say so briefly. I want to see you considered it.
 ```
 
-## Why the explicit checklist matters
+## Why the checklist
 
-Without the checklist, "review this SQL" gets you a generic "looks fine" from Claude, which is not useful. With the checklist, Claude actually applies each check and often catches things.
+If you just say "review this SQL," you mostly get "looks fine." With the checklist, Claude actually goes through each item, and it often finds something.
 
-The checklist is specifically **the bugs LLMs produce**, not the bugs humans produce. Humans tend to make syntax errors (caught by the warehouse). LLMs tend to make subtly-wrong semantic choices that run fine and return plausible-looking numbers.
+The list is about the bugs LLMs make, not the ones people make. People tend to make syntax errors, and the warehouse catches those. LLMs tend to make wrong choices that still run and return numbers that look reasonable.
 
-## The single highest-value item on the checklist
+## The one that matters most
 
-**Join fan-out.** This is the one I've been burned by the most. A query joins events to a dimension table, a user has multiple rows in the dim table (e.g., plan history), and suddenly your event counts are inflated 3x. The query runs. The numbers look wrong but not obviously wrong. You ship the readout.
+Join fan-out has burned me more than anything else on the list. You join events to a dimension table, some users have several rows in that table (plan history, say), and your event counts are suddenly three times too high. The query runs fine, the numbers look a bit off but not obviously wrong, and the readout goes out.
 
-Explicitly asking Claude to trace join fan-out catches this ~80% of the time in my experience.
+Asking Claude specifically to trace fan-out catches this about 80% of the time, in my experience.
 
 ## Example
 
-Input query (abbreviated): a query counting daily active users joined to a `user_plans` table that has one row per plan change.
+The query (shortened): daily active users, joined to a `user_plans` table that has one row per plan change.
 
-Claude's review response:
+Claude's review:
 
 > **1. JOIN fan-out: ⚠️ Issue found.**
 > The `LEFT JOIN` to `user_plans` on `user_id` will duplicate each DAU row
@@ -77,15 +75,13 @@ Claude's review response:
 > `WHERE plan_tier IS DISTINCT FROM 'enterprise'`.
 > [...]
 
-This review took 20 seconds. The join fan-out bug would have taken me 30 minutes to diagnose after I noticed the numbers looked inflated.
+The review took 20 seconds. Finding that fan-out bug myself, after noticing the numbers looked high, would have taken half an hour.
 
----
+## Where it goes wrong
 
-## Failure mode
+It sometimes flags things that aren't problems. The usual one is warning about NULLs in a filter on a column that can't be NULL. Skim the review and skip suggestions that don't apply to your schema instead of applying all of them.
 
-Claude will occasionally flag a non-issue as an issue (false positive). Most common: it'll warn about NULL handling in a filter where NULLs are impossible (e.g., the column is NOT NULL). **Mitigation:** skim the review, don't blindly apply every suggestion. Ignore the ones that don't apply to your schema.
+## When not to bother
 
-## When to skip
-
-- Simple queries (single table, no joins, no windows). The checklist is overkill.
-- Queries where you're prototyping and planning to iterate 5 times anyway — save the review for the final version.
+- Simple queries: one table, no joins, no window functions.
+- When you're still prototyping and will rewrite it five more times. Review the final version.
